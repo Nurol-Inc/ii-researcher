@@ -250,6 +250,10 @@ The frontend will be available at http://localhost:3000
 
 ## 🐳 Run with Docker
 
+For detailed Docker documentation, see [`docs/docker/QUICKSTART.md`](docs/docker/QUICKSTART.md) or [`docs/docker/DOCKER.md`](docs/docker/DOCKER.md).
+
+### Quick Start
+
 1. **Important**: Make sure you have set up all environment variables from step 3 before proceeding.
 
 2. Start the services using Docker Compose:
@@ -259,17 +263,15 @@ The frontend will be available at http://localhost:3000
 docker compose up --build -d
 ```
 
-The following services will be started:
-
-- frontend: Next.js frontend application
-- api: FastAPI backend service
-- litellm: LiteLLM proxy server
+The unified container includes all project services:
+- Frontend: Next.js frontend application
+- API: FastAPI backend service
+- MCP: MCP server for Claude integration
 
 The services will be available at:
-
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
-- LiteLLM Server: http://localhost:4000
+- MCP Server: http://localhost:8765
 
 3. View logs:
 
@@ -277,10 +279,8 @@ The services will be available at:
 # View all logs
 docker compose logs -f
 
-# View specific service logs
-docker compose logs -f frontend
-docker compose logs -f api
-docker compose logs -f litellm
+# View specific container logs
+docker compose logs -f ii-researcher
 ```
 
 4. Stop the services:
@@ -288,6 +288,8 @@ docker compose logs -f litellm
 ```bash
 docker compose down
 ```
+
+**Note:** External LLM services (like LiteLLM) should be run separately if needed. See [`docs/docker/CHANGELOG_LITELLM_REMOVAL.md`](docs/docker/CHANGELOG_LITELLM_REMOVAL.md) for details.
 
 ## 🛠️ Running QwQ Model with SGLang
 
@@ -305,3 +307,31 @@ II-Researcher is inspired by and built with the support of the open-source commu
 - **[node-DeepResearch](https://github.com/jina-ai/node-DeepResearch)** – Prompt inspiration
 - **[gpt-researcher](https://github.com/assafelovic/gpt-researcher)** - Prompt inspiration, web scraper tool
 - **[baml](https://github.com/BoundaryML/baml)** - Structured outputs
+
+---
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) directory:
+
+### Quick Start
+- **[Docker Quick Start Guide](docs/docker/QUICKSTART.md)** - Complete Docker setup and usage
+
+### Architecture & Design
+- **[System Architecture](docs/architecture/ARCHITECTURE.md)** - Complete system design and components
+- **[Layered Architecture](docs/docker/LAYERED_ARCHITECTURE.md)** - Core, Service, and All-in-One images
+
+### Docker & Deployment
+- **[Docker Guide](docs/docker/DOCKER.md)** - Complete Docker documentation
+- **[Docker Files Explained](docs/docker/DOCKER_FILES_EXPLAINED.md)** - Purpose of each Docker file
+- **[Build Verification](docs/docker/BUILD_VERIFICATION.md)** - Verifying builds
+- **[LiteLLM Removal Changelog](docs/docker/CHANGELOG_LITELLM_REMOVAL.md)** - Running LiteLLM separately
+
+### Implementation Guides
+- **[Docker Summary](docs/guides/DOCKER_SUMMARY.md)** - Implementation overview
+- **[Docker Checklist](docs/guides/DOCKER_CHECKLIST.md)** - Testing and deployment checklist
+
+### Navigation
+- **[Documentation Index](docs/README.md)** - Complete documentation navigation
+
+---

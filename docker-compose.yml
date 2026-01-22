@@ -1,60 +1,81 @@
 services:
-  frontend:
-    image: ii_researcher/frontend
-    build:
-      dockerfile: Dockerfile
-      context: ./frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://api:8000
-    depends_on:
-      - api
-
-  litellm:
-    image: ii_researcher/litellm
+  # ============================================================================
+  # Unified Container (Project Services Only)
+  # Runs Frontend, API, and MCP in a single container
+  # Note: LiteLLM or other 3rd-party services should run separately
+  # ============================================================================
+  ii-researcher:
+    image: nurol/ii-researcher:latest
+    container_name: ii-researcher
     build:
       context: .
-      dockerfile: docker/Dockerfile.litellm
+      dockerfile: docker/Dockerfile
     ports:
-      - "4000:4000"
-    volumes:
-      - .:/app
-
-  api:
-    image: ii_researcher/api
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.api
-    ports:
-      - "8000:8000"
-    volumes:
-      - .:/app
+      - "3000:3000"  # Frontend
+      - "8000:8000"  # API
+      - "8765:8765"  # MCP Server (HTTP mode)
     environment:
-      - TAVILY_API_KEY=${TAVILY_API_KEY}
-      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      # Service Mode
+      - SERVICE_MODE=all
+      
+      # LLM Configuration (point to external LiteLLM or LLM service)
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_BASE_URL=http://litellm:4000
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://localhost:4000}
+      - STRATEGIC_LLM=${STRATEGIC_LLM:-gpt-4o}
+      - SMART_LLM=${SMART_LLM:-gpt-4o}
+      - FAST_LLM=${FAST_LLM:-gemini-lite}
+      
+      # Reasoning Model Configuration
+      - R_MODEL=${R_MODEL:-r1}
+      - R_TEMPERATURE=${R_TEMPERATURE:-0.2}
+      - R_REPORT_MODEL=${R_REPORT_MODEL:-gpt-4o}
+      - R_PRESENCE_PENALTY=${R_PRESENCE_PENALTY:-0}
+      
+      # Search Provider Configuration
+      - SEARCH_PROVIDER=${SEARCH_PROVIDER:-serpapi}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
       - SERPAPI_API_KEY=${SERPAPI_API_KEY}
-      - SEARCH_PROVIDER=${SEARCH_PROVIDER}
-      - SCRAPER_PROVIDER=${SCRAPER_PROVIDER}
-      - SEARCH_PROCESS_TIMEOUT=${SEARCH_PROCESS_TIMEOUT}
-      - SEARCH_QUERY_TIMEOUT=${SEARCH_QUERY_TIMEOUT}
-      - SCRAPE_URL_TIMEOUT=${SCRAPE_URL_TIMEOUT}
-      - STEP_SLEEP=${STEP_SLEEP}
-      - COMPRESS_MAX_OUTPUT_WORDS=${COMPRESS_MAX_OUTPUT_WORDS}
-      - COMPRESS_MAX_INPUT_WORDS=${COMPRESS_MAX_INPUT_WORDS}
-      - COMPRESS_EMBEDDING_MODEL=${COMPRESS_EMBEDDING_MODEL}
-      - COMPRESS_SIMILARITY_THRESHOLD=${COMPRESS_SIMILARITY_THRESHOLD}
-      - STRATEGIC_LLM=${STRATEGIC_LLM}
-      - SMART_LLM=${SMART_LLM}
-      - FAST_LLM=${FAST_LLM}
-      - R_MODEL=${R_MODEL}
-      - R_TEMPERATURE=${R_TEMPERATURE}
-      - R_REPORT_MODEL=${R_REPORT_MODEL}
-      - R_PRESENCE_PENALTY=${R_PRESENCE_PENALTY}
-      - USE_LLM_COMPRESSOR=${USE_LLM_COMPRESSOR}
-    command: python api.py
-    depends_on:
-      - litellm
+      
+      # Scraper Provider Configuration
+      - SCRAPER_PROVIDER=${SCRAPER_PROVIDER:-firecrawl}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      
+      # Compression Configuration
+      - COMPRESS_EMBEDDING_MODEL=${COMPRESS_EMBEDDING_MODEL:-text-embedding-3-large}
+      - COMPRESS_SIMILARITY_THRESHOLD=${COMPRESS_SIMILARITY_THRESHOLD:-0.3}
+      - COMPRESS_MAX_OUTPUT_WORDS=${COMPRESS_MAX_OUTPUT_WORDS:-4096}
+      - COMPRESS_MAX_INPUT_WORDS=${COMPRESS_MAX_INPUT_WORDS:-32000}
+      - USE_LLM_COMPRESSOR=${USE_LLM_COMPRESSOR:-false}
+      
+      # Timeout Settings
+      - SEARCH_PROCESS_TIMEOUT=${SEARCH_PROCESS_TIMEOUT:-300}
+      - SEARCH_QUERY_TIMEOUT=${SEARCH_QUERY_TIMEOUT:-20}
+      - SCRAPE_URL_TIMEOUT=${SCRAPE_URL_TIMEOUT:-30}
+      - STEP_SLEEP=${STEP_SLEEP:-100}
+      
+      # Frontend Configuration
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_TELEMETRY_DISABLED=1
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# ============================================================================
+# Note: This container only includes services from the ii-researcher project.
+# For LiteLLM or other 3rd-party services, run them separately:
+#
+# Example - Run LiteLLM separately:
+#   docker run -d -p 4000:4000 \
+#     -v $(pwd)/litellm_config.yaml:/app/config.yaml \
+#     ghcr.io/berriai/litellm:latest \
+#     --config /app/config.yaml
+#
+# For the legacy separate container setup, see docker-compose-legacy.yml
+# ============================================================================

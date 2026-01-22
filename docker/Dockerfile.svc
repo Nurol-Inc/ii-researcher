@@ -1,0 +1,82 @@
+# Dockerfile for Service Layer
+# Contains: API Server, MCP Server
+# Builds on top of Core layer
+
+# ============================================================================
+# Build from Core Layer
+# ============================================================================
+ARG CORE_IMAGE=nurol/ii-researcher-core:latest
+FROM ${CORE_IMAGE} AS core-base
+
+# ============================================================================
+# Service Layer Runtime
+# ============================================================================
+FROM python:3.10.15-slim AS runtime
+
+# Build arguments
+ARG VERSION=0.0.1
+ARG GIT_COMMIT=unknown
+ARG BUILD_DATE=unknown
+
+# Labels
+LABEL org.opencontainers.image.title="II-Researcher Services" \
+      org.opencontainers.image.description="Service layer with API and MCP servers" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${GIT_COMMIT}" \
+      org.opencontainers.image.vendor="Intelligent Internet" \
+      org.opencontainers.image.source="https://github.com/Intelligent-Internet/ii-researcher"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python environment from core layer
+COPY --from=core-base /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=core-base /usr/local/bin /usr/local/bin
+COPY --from=core-base /app/ii_researcher /app/ii_researcher
+COPY --from=core-base /app/pyproject.toml /app/pyproject.toml
+
+# Copy service layer code
+COPY api.py ./
+COPY mcp/ ./mcp/
+
+# Install the package (no-deps since core already has dependencies)
+RUN pip install --no-deps -e .
+
+# Copy entrypoint and supervisor config
+COPY docker/entrypoint-svc.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+COPY docker/supervisord-svc.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Create logs directory
+RUN mkdir -p /var/log/supervisor /var/log/ii-researcher
+
+# Expose ports
+# 8000 - API Server
+# 8765 - MCP Server (HTTP mode)
+EXPOSE 8000 8765
+
+# Environment variables with defaults
+ENV SERVICE_MODE=api
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8000/docs || exit 1
+
+# Set entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# Default command
+CMD ["api"]

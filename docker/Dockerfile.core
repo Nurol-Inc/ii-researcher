@@ -1,0 +1,65 @@
+# Dockerfile for Core Application Layer
+# Contains: Reasoning Agent, Tool Clients (Search, Scraper, Compressor)
+# This is the foundational layer used by service layer components
+
+FROM python:3.10.15-slim AS base
+
+# Build arguments
+ARG VERSION=0.0.1
+ARG GIT_COMMIT=unknown
+ARG BUILD_DATE=unknown
+
+# Labels
+LABEL org.opencontainers.image.title="II-Researcher Core" \
+      org.opencontainers.image.description="Core application layer with reasoning agent and tool clients" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${GIT_COMMIT}" \
+      org.opencontainers.image.vendor="Intelligent Internet" \
+      org.opencontainers.image.source="https://github.com/Intelligent-Internet/ii-researcher"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python dependency files
+COPY pyproject.toml ./
+
+# Install Python dependencies
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install . && \
+    pip install uvicorn
+
+# Copy core application code
+COPY ii_researcher/ ./ii_researcher/
+
+# Install the package
+RUN pip install --no-deps -e .
+
+# Create necessary directories
+RUN mkdir -p /var/log/ii-researcher
+
+# Expose common ports (can be overridden)
+EXPOSE 8000 8765
+
+# Environment variables with defaults
+ENV PYTHONUNBUFFERED=1
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD python -c "import ii_researcher; print('OK')" || exit 1
+
+# Default command - Python shell for core layer
+CMD ["python"]
