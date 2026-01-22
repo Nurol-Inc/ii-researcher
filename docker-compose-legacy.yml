@@ -15,6 +15,8 @@ services:
       - NEXT_PUBLIC_API_URL=http://api:8000
     depends_on:
       - api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   litellm:
     image: ii_researcher/litellm
@@ -25,6 +27,8 @@ services:
       - "4000:4000"
     volumes:
       - .:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   api:
     image: ii_researcher/api
@@ -62,3 +66,5 @@ services:
     command: python api.py
     depends_on:
       - litellm
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

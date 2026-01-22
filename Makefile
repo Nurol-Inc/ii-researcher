@@ -244,25 +244,28 @@ clean-all: clean
 	@echo "  - All unused volumes"
 	@echo "  - All dangling images"
 	@echo ""
-	@read -p "Continue? [y/N] " -n 1 -r; \
-	echo; \
-	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		echo "Removing all unused containers..."; \
-		docker container prune -f; \
-		echo ""; \
-		echo "Removing all unused networks..."; \
-		docker network prune -f; \
-		echo ""; \
-		echo "Removing all unused volumes..."; \
-		docker volume prune -f; \
-		echo ""; \
-		echo "Removing all dangling images..."; \
-		docker image prune -a -f; \
-		echo ""; \
-		echo "✓ All Docker resources cleaned!"; \
-	else \
-		echo "Clean cancelled."; \
-	fi
+	@printf "Continue? [y/N] "; \
+	read REPLY; \
+	case "$$REPLY" in \
+		[Yy]*) \
+			echo "Removing all unused containers..."; \
+			docker container prune -f; \
+			echo ""; \
+			echo "Removing all unused networks..."; \
+			docker network prune -f; \
+			echo ""; \
+			echo "Removing all unused volumes..."; \
+			docker volume prune -f; \
+			echo ""; \
+			echo "Removing all dangling images..."; \
+			docker image prune -a -f; \
+			echo ""; \
+			echo "✓ All Docker resources cleaned!"; \
+			;; \
+		*) \
+			echo "Clean cancelled."; \
+			;; \
+	esac
 
 # ============================================================================
 # Docker Compose Targets
@@ -276,7 +279,7 @@ up:
 	@echo "✓ Services started!"
 	@echo "  Frontend: http://localhost:3000"
 	@echo "  API: http://localhost:8000"
-	@echo "  LiteLLM: http://localhost:4000"
+	@echo "  MCP: http://localhost:8765"
 
 # Stop services
 down:

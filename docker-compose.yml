@@ -60,6 +60,9 @@ services:
     
     restart: unless-stopped
     
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
       interval: 30s
