@@ -4,17 +4,25 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from openai import AsyncOpenAI, OpenAI
 
-from ii_researcher.reasoning.config import get_config
+from ii_researcher.reasoning.config import AgentConfig
 from ii_researcher.reasoning.models.trace import Trace
 from ii_researcher.reasoning.tools.registry import format_tool_descriptions
 
 
 class OpenAIClient:
-    """OpenAI API client."""
+    """OpenAI API client.
+    
+    Each client instance has its own configuration to ensure concurrent sessions
+    don't interfere with each other.
+    """
 
-    def __init__(self):
-        """Initialize the OpenAI client."""
-        self.config = get_config()
+    def __init__(self, config: AgentConfig):
+        """Initialize the OpenAI client.
+        
+        Args:
+            config: Session-specific configuration.
+        """
+        self.config = config
 
         # Create synchronous client
         self.client = OpenAI(

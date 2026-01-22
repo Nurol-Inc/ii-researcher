@@ -372,23 +372,52 @@ The response format is in well markdown.
         ]
 
 
-# Create a singleton config instance
-CONFIG = AgentConfig()
-REPORT_CONFIG = ReportConfig()
+def create_config() -> AgentConfig:
+    """Create a new isolated configuration instance.
+    
+    Each session should have its own config to ensure concurrent sessions
+    don't interfere with each other.
+    
+    Returns:
+        A new AgentConfig instance with default values from environment variables.
+    """
+    return AgentConfig()
+
+
+def create_report_config() -> ReportConfig:
+    """Create a new isolated report configuration instance.
+    
+    Returns:
+        A new ReportConfig instance with default values from environment variables.
+    """
+    return ReportConfig()
+
+
+# Aliases for backward compatibility (creates new instances each time)
+def get_config() -> AgentConfig:
+    """Create a new configuration instance.
+    
+    Note: This creates a NEW instance each time for session isolation.
+    For concurrent sessions, this is the correct behavior.
+    """
+    return create_config()
 
 
 def get_report_config() -> ReportConfig:
-    """Get the report configuration."""
-    return REPORT_CONFIG
+    """Create a new report configuration instance.
+    
+    Note: This creates a NEW instance each time for session isolation.
+    """
+    return create_report_config()
 
 
-def get_config() -> AgentConfig:
-    """Get the agent configuration."""
-    return CONFIG
-
-
-def update_config(updates: Dict[str, Any]) -> None:
-    """Update the agent configuration."""
+def update_config(updates: Dict[str, Any], config: AgentConfig) -> None:
+    """Update an agent configuration.
+    
+    Args:
+        updates: Dictionary of configuration updates.
+        config: The config instance to update.
+    """
     for key, value in updates.items():
-        if hasattr(CONFIG, key):
-            setattr(CONFIG, key, value)
+        if hasattr(config, key):
+            setattr(config, key, value)

@@ -1,6 +1,8 @@
 import asyncio
 import logging
-from ii_researcher.reasoning.config import ConfigConstants, get_config
+from typing import Set
+
+from ii_researcher.reasoning.config import ConfigConstants, AgentConfig
 from ii_researcher.reasoning.tools.base import BaseTool
 from ii_researcher.reasoning.tools.registry import register_tool
 from ii_researcher.reasoning.tools.tool_history import ToolHistory
@@ -11,7 +13,12 @@ from ii_researcher.tool_clients.scrape_client import ScrapeClient
 
 @register_tool
 class WebScraperTool(BaseTool):
-    """Tool for scraping web pages."""
+    """Tool for scraping web pages.
+    
+    This tool is designed to be session-safe. Each instance maintains its own
+    state for tracking visited URLs, preventing cross-session interference
+    when multiple clients are using the MCP server concurrently.
+    """
 
     name = "page_visit"
     description = (
@@ -28,19 +35,26 @@ class WebScraperTool(BaseTool):
     return_type = "string"
     suffix = ConfigConstants.SEARCH_SUFFIX
 
-    # Set to store already visited URLs
-    _visited_urls = set()
+    def __init__(self, session_visited_urls: Set[str], config: AgentConfig):
+        """Initialize the web scraper tool.
+        
+        Args:
+            session_visited_urls: Set to track visited URLs for this session.
+            config: Session-specific configuration.
+        """
+        self._visited_urls = session_visited_urls
+        self._config = config
 
     @classmethod
     def reset(cls) -> None:
-        """Reset the set of visited URLs."""
-        cls._visited_urls = set()
+        """No-op for API compatibility. Session state is managed per-instance."""
+        pass
 
     async def execute(self, tool_history: ToolHistory = None, **kwargs) -> str:
         """Execute the web scraper."""
         urls = kwargs.get("urls", [])
         question = kwargs.get("question", "")  # Optional question context
-        config = get_config()
+        config = self._config
 
         if not urls:
             return "No URLs provided."
@@ -52,14 +66,14 @@ class WebScraperTool(BaseTool):
         tasks = []
 
         for url in urls:
-            # Check if the URL has already been visited
+            # Check if the URL has already been visited (session-isolated)
             if url in self._visited_urls:
                 result_str += (
                     ConfigConstants.DUPLICATE_URL_TEMPLATE.format(url=url) + "\n"
                 )
                 continue
 
-            # Add to visited URLs
+            # Add to visited URLs (session-isolated)
             self._visited_urls.add(url)
 
             # Create a task for scraping the URL

@@ -1,5 +1,7 @@
 import logging
-from ii_researcher.reasoning.config import ConfigConstants, get_config
+from typing import Set
+
+from ii_researcher.reasoning.config import ConfigConstants, AgentConfig
 from ii_researcher.reasoning.tools.base import BaseTool
 from ii_researcher.reasoning.tools.registry import register_tool
 from ii_researcher.reasoning.tools.tool_history import ToolHistory
@@ -10,7 +12,12 @@ from ii_researcher.tool_clients.search_client import SearchClient
 
 @register_tool
 class WebSearchTool(BaseTool):
-    """Tool for performing web searches."""
+    """Tool for performing web searches.
+    
+    This tool is designed to be session-safe. Each instance maintains its own
+    state for tracking searched queries, preventing cross-session interference
+    when multiple clients are using the MCP server concurrently.
+    """
 
     name = "web_search"
     description = "Performs a google web search based on your queries (think a Google search) then returns the top search results but only the title, url and a short snippet of the search results. To get the full content of the search results, you MUST use the page_visit tool."
@@ -23,18 +30,25 @@ class WebSearchTool(BaseTool):
     return_type = "string"
     suffix = ConfigConstants.SEARCH_SUFFIX
 
-    # Set to store already searched queries
-    _searched_queries = set()
+    def __init__(self, session_searched_queries: Set[str], config: AgentConfig):
+        """Initialize the web search tool.
+        
+        Args:
+            session_searched_queries: Set to track searched queries for this session.
+            config: Session-specific configuration.
+        """
+        self._searched_queries = session_searched_queries
+        self._config = config
 
     @classmethod
     def reset(cls) -> None:
-        """Reset the set of searched queries."""
-        cls._searched_queries = set()
+        """No-op for API compatibility. Session state is managed per-instance."""
+        pass
 
     async def execute(self, tool_history: ToolHistory = None, **kwargs) -> str:
         """Execute the web search."""
         queries = kwargs.get("queries", [])
-        config = get_config()
+        config = self._config
 
         if not queries:
             return "No search queries provided."
@@ -44,7 +58,7 @@ class WebSearchTool(BaseTool):
 
         result_str = ""
         for query in queries:
-            # Check if the query has already been searched
+            # Check if the query has already been searched (session-isolated)
             if query in self._searched_queries:
                 result_str += (
                     ConfigConstants.DUPLICATE_QUERY_TEMPLATE.format(query=query) + "\n"
@@ -52,7 +66,7 @@ class WebSearchTool(BaseTool):
                 continue
 
             try:
-                # Add to searched queries
+                # Add to searched queries (session-isolated)
                 self._searched_queries.add(query)
 
                 # Perform the search

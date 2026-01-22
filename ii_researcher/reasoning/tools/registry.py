@@ -37,7 +37,11 @@ class ToolRegistry:
         return self._tools
 
     def format_tool_descriptions(self) -> str:
-        """Format tool descriptions for the LLM."""
+        """Format tool descriptions for the LLM.
+        
+        Uses class-level attributes to avoid instantiating tools that require
+        constructor arguments (e.g., session-specific state).
+        """
         descriptions = []
         # Sort tools to ensure web_search comes before page_visit
         sorted_tools = sorted(
@@ -45,8 +49,14 @@ class ToolRegistry:
             key=lambda x: (x[0] != "web_search", x[0] != "page_visit", x[0]),
         )
         for _, tool_cls in sorted_tools:
-            tool_instance = tool_cls()
-            descriptions.append(tool_instance.format_description())
+            # Use class attributes directly instead of instantiating
+            # This avoids issues with tools that require constructor arguments
+            description = (
+                f"- {tool_cls.name}: {tool_cls.description}\n"
+                f"    Takes inputs: {tool_cls.argument_schema}\n"
+                f"    Returns an output of type: {tool_cls.return_type}"
+            )
+            descriptions.append(description)
 
         return "*You only have access to these tools:\n" + "\n".join(descriptions)
 

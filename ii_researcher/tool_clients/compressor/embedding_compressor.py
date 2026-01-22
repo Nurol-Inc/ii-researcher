@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 from langchain_openai import OpenAIEmbeddings
 
-from ii_researcher.config import OPENAI_BASE_URL
+from ii_researcher.config import EMBEDDING_BASE_URL
 
 from .base import Compressor
 
@@ -13,11 +13,13 @@ class EmbeddingCompressor(Compressor):
     def __init__(
         self,
         similarity_threshold: float,
-        embedding_model: str = "text-embedding-3-large",
+        embedding_model: str = "BAAI/bge-m3",
+        embedding_base_url: str = None,
     ):
+        base_url = embedding_base_url or EMBEDDING_BASE_URL
         self._embedding_model = OpenAIEmbeddings(
             model=embedding_model,
-            base_url=OPENAI_BASE_URL,
+            base_url=base_url,
         )
         self.similarity_threshold = similarity_threshold
 

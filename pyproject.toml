@@ -14,7 +14,7 @@ authors = [
     {name = "Intelligent Internet", email = "emad@ii.inc"},
 ]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = {file = "LICENSE"}
 
 dependencies = [
@@ -38,7 +38,10 @@ dependencies = [
     "clean-text[gpl]>=0.6.0",
     "litellm[proxy]>=1.63.6",
     "uvicorn>=0.29.0",
-    "baml-cli>=0.1.0"
+    "baml-cli>=0.1.0",
+    "duckduckgo-search>=7.0.0",
+    "mcp>=1.1.0",
+    "python-dotenv>=1.0.0"
 ]
 
 [project.optional-dependencies]

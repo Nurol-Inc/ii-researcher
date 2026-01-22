@@ -5,6 +5,19 @@ import urllib.parse
 import requests
 from tavily import TavilyClient, MissingAPIKeyError, InvalidAPIKeyError
 
+try:
+    from duckduckgo_search import DDGS
+    HAS_DUCKDUCKGO = True
+except ImportError:
+    HAS_DUCKDUCKGO = False
+
+try:
+    import requests
+    from bs4 import BeautifulSoup
+    HAS_BS4 = True
+except ImportError:
+    HAS_BS4 = False
+
 
 class SearchClient:
     """A class that provides web search capabilities using different search providers."""
@@ -112,6 +125,83 @@ class SearchClient:
 
         return search_response
 
+    def _search_query_by_duckduckgo(self, query, max_results=10):
+        """Searches the query using DuckDuckGo with multiple fallback methods."""
+        search_response = []
+        
+        # Method 1: Try the duckduckgo-search package with retry
+        if HAS_DUCKDUCKGO:
+            for attempt in range(3):
+                try:
+                    ddgs = DDGS()
+                    results = list(ddgs.text(query, max_results=max_results))
+                    for result in results:
+                        search_response.append(
+                            {
+                                "title": result.get("title", ""),
+                                "url": result.get("href", ""),
+                                "content": result.get("body", ""),
+                            }
+                        )
+                    if search_response:
+                        return search_response
+                except Exception as e:
+                    print(f"DuckDuckGo attempt {attempt + 1} failed: {e}")
+                    import time
+                    time.sleep(1)
+        
+        # Method 2: Fallback to DuckDuckGo HTML search
+        if HAS_BS4 and not search_response:
+            try:
+                search_response = self._search_duckduckgo_html(query, max_results)
+            except Exception as e:
+                print(f"DuckDuckGo HTML fallback failed: {e}")
+        
+        return search_response
+    
+    def _search_duckduckgo_html(self, query, max_results=10):
+        """Fallback: Search DuckDuckGo using HTML parsing."""
+        search_response = []
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        
+        try:
+            # Use DuckDuckGo HTML version
+            url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                results = soup.find_all('div', class_='result')
+                
+                for i, result in enumerate(results[:max_results]):
+                    title_elem = result.find('a', class_='result__a')
+                    snippet_elem = result.find('a', class_='result__snippet')
+                    
+                    if title_elem:
+                        title = title_elem.get_text(strip=True)
+                        href = title_elem.get('href', '')
+                        
+                        # Extract actual URL from DuckDuckGo redirect
+                        if 'uddg=' in href:
+                            import re
+                            url_match = re.search(r'uddg=([^&]+)', href)
+                            if url_match:
+                                href = urllib.parse.unquote(url_match.group(1))
+                        
+                        snippet = snippet_elem.get_text(strip=True) if snippet_elem else ""
+                        
+                        search_response.append({
+                            "title": title,
+                            "url": href,
+                            "content": snippet,
+                        })
+        except Exception as e:
+            print(f"DuckDuckGo HTML search error: {e}")
+        
+        return search_response
+
     def search(self, query=None, max_results=None):
         """
         Execute search using configured provider or provided parameters.
@@ -132,6 +222,8 @@ class SearchClient:
             return self._search_query_by_serp_api(query, max_results)
         elif self.search_provider == "jina":
             return self._search_query_by_jina(query, max_results)
+        elif self.search_provider == "duckduckgo":
+            return self._search_query_by_duckduckgo(query, max_results)
         print(f"Error: Invalid search provider specified {self.search_provider}")
         return {}
 
