@@ -6,7 +6,7 @@ import requests
 from tavily import TavilyClient, MissingAPIKeyError, InvalidAPIKeyError
 
 try:
-    from duckduckgo_search import DDGS
+    from ddgs import DDGS
     HAS_DUCKDUCKGO = True
 except ImportError:
     HAS_DUCKDUCKGO = False
@@ -129,7 +129,7 @@ class SearchClient:
         """Searches the query using DuckDuckGo with multiple fallback methods."""
         search_response = []
         
-        # Method 1: Try the duckduckgo-search package with retry
+        # Method 1: Try the ddgs package with retry
         if HAS_DUCKDUCKGO:
             for attempt in range(3):
                 try:

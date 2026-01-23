@@ -18,14 +18,29 @@ export const metadata: Metadata = {
   description: "Deep Research is a tool for in-depth analysis and research.",
 };
 
+// Force dynamic rendering so we can read runtime env vars
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Server-side runtime configuration
+  // This runs on the server at runtime, so it can access ANY env var (not just NEXT_PUBLIC_*)
+  const runtimeConfig = {
+    apiUrl: process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Inject runtime config into window object for client-side access */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__RUNTIME_CONFIG__ = ${JSON.stringify(runtimeConfig)};`,
+          }}
+        />
         <link
           rel="apple-touch-icon"
           sizes="180x180"

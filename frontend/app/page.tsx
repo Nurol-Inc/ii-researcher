@@ -11,6 +11,7 @@ import Think from "@/components/think";
 import Thoughts from "@/components/thoughts";
 import { Button } from "@/components/ui/button";
 import { ThoughtStep, ThoughtType } from "@/typings/agent";
+import { getApiUrl } from "@/lib/config";
 
 export default function Home() {
   const [question, setQuestion] = useState("");
@@ -39,10 +40,9 @@ export default function Home() {
     setIsStreamingThought(true);
 
     const encodedQuestion = encodeURIComponent(question);
+    const apiUrl = getApiUrl();
     const eventSource = new EventSource(
-      `${
-        process.env.NEXT_PUBLIC_API_URL
-      }/search?question=${encodedQuestion}&is_reasoning=${
+      `${apiUrl}/search?question=${encodedQuestion}&is_reasoning=${
         modelType == "reasoning"
       }`
     );

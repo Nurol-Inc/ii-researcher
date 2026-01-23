@@ -87,6 +87,20 @@ start_api() {
 start_frontend() {
     log_info "Starting Frontend service on port 3000..."
     
+    # Auto-detect API URL if not set
+    if [ -z "$API_URL" ] && [ -z "$NEXT_PUBLIC_API_URL" ]; then
+        log_info "API_URL not set, using default: http://localhost:8000"
+        export API_URL="http://localhost:8000"
+    fi
+    
+    # For backwards compatibility with NEXT_PUBLIC_API_URL
+    if [ ! -z "$NEXT_PUBLIC_API_URL" ] && [ -z "$API_URL" ]; then
+        log_info "Using NEXT_PUBLIC_API_URL as API_URL for backwards compatibility"
+        export API_URL="$NEXT_PUBLIC_API_URL"
+    fi
+    
+    log_info "Frontend will use API URL: $API_URL"
+    
     # Wait for API if it should be running
     if [ "$SERVICE_MODE" = "all" ] || [ "$SERVICE_MODE" = "frontend+api" ]; then
         log_info "Waiting for API to be ready..."
@@ -103,7 +117,7 @@ start_frontend() {
     fi
     
     cd /app/frontend
-    PORT=3000 HOSTNAME=0.0.0.0 node server.js &
+    PORT=3000 HOSTNAME=0.0.0.0 API_URL="$API_URL" node server.js &
     FRONTEND_PID=$!
     log_info "Frontend service started with PID: $FRONTEND_PID"
 }
@@ -241,6 +255,7 @@ main() {
     fi
     if [ ! -z "$FRONTEND_PID" ]; then
         log_info "✓ Frontend running (PID: $FRONTEND_PID) on http://localhost:3000"
+        log_info "  → API URL configured as: ${API_URL:-http://localhost:8000}"
     fi
     if [ ! -z "$MCP_PID" ]; then
         log_info "✓ MCP running (PID: $MCP_PID)"

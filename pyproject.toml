@@ -39,7 +39,7 @@ dependencies = [
     "litellm[proxy]>=1.63.6",
     "uvicorn>=0.29.0",
     "baml-cli>=0.1.0",
-    "duckduckgo-search>=7.0.0",
+    "ddgs>=1.0.0",
     "mcp>=1.1.0",
     "python-dotenv>=1.0.0"
 ]
