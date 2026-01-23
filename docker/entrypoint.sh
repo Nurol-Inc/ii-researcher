@@ -130,14 +130,14 @@ start_mcp() {
     local port="${MCP_PORT:-8765}"
     
     cd /app
-    if [ "$transport" = "http" ]; then
-        log_info "Starting MCP server in HTTP mode on port $port..."
+    if [ "$transport" = "http" ] || [ "$transport" = "sse" ]; then
+        log_info "Starting MCP server in HTTP/SSE mode on port $port..."
         python mcp/enhanced_server.py --transport sse --port "$port" --log-level INFO &
         MCP_PID=$!
         log_info "MCP service started with PID: $MCP_PID"
     else
         log_info "MCP service requires stdio mode and cannot run in background"
-        log_info "Use SERVICE_MODE=mcp with MCP_TRANSPORT=http for background mode"
+        log_info "Use SERVICE_MODE=mcp with MCP_TRANSPORT=http or MCP_TRANSPORT=sse for background mode"
     fi
 }
 
@@ -197,10 +197,11 @@ main() {
     
     case "$mode" in
         all)
-            log_info "Starting all services (API + Frontend)"
+            log_info "Starting all services (API + Frontend + MCP)"
             start_api
             sleep 3  # Give API time to start
             start_frontend
+            start_mcp
             ;;
         
         api)

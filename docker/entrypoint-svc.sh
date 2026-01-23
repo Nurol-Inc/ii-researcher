@@ -45,8 +45,8 @@ start_mcp() {
     local port="${MCP_PORT:-8765}"
     
     cd /app
-    if [ "$transport" = "http" ]; then
-        log_info "Starting MCP server in HTTP mode on port $port..."
+    if [ "$transport" = "http" ] || [ "$transport" = "sse" ]; then
+        log_info "Starting MCP server in HTTP/SSE mode on port $port..."
         exec python mcp/enhanced_server.py --transport sse --port "$port" --log-level INFO
     else
         log_info "Starting MCP server in stdio mode..."
