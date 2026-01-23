@@ -196,17 +196,15 @@ test:
 	@echo "Image: $(IMAGE_NAME):$(IMAGE_VERSION)"
 	@echo "============================================"
 	@echo ""
-	@echo "Starting container with all services..."
+	@echo "Starting services with docker compose..."
 	@echo "Frontend will be available at: http://localhost:3000"
 	@echo "API will be available at: http://localhost:8000"
-	@echo "LiteLLM will be available at: http://localhost:4000"
+	@echo "MCP Server will be available at: http://localhost:8765"
 	@echo ""
-	@docker run -it --rm \
-		-p 3000:3000 \
-		-p 8000:8000 \
-		-p 4000:4000 \
-		--env-file .env \
-		$(IMAGE_NAME):$(IMAGE_VERSION)
+	@echo "Note: Uses env.test by default. Create .env for custom config."
+	@echo "Press Ctrl+C to stop all services"
+	@echo ""
+	docker compose up
 
 # ============================================================================
 # Clean Targets
@@ -220,9 +218,9 @@ clean:
 	@echo ""
 	@echo "Removing build cache..."
 	@docker buildx prune -f
-	@echo ""
-	@echo "Removing dangling images..."
-	@docker image prune -f
+	#@echo ""
+	#@echo "Removing dangling images..."
+	#@docker image prune -f
 	@echo ""
 	@echo "Removing dangling build cache..."
 	@docker builder prune -f
@@ -242,7 +240,7 @@ clean-all: clean
 	@echo "  - All stopped containers"
 	@echo "  - All unused networks"
 	@echo "  - All unused volumes"
-	@echo "  - All dangling images"
+	#@echo "  - All dangling images"
 	@echo ""
 	@printf "Continue? [y/N] "; \
 	read REPLY; \
@@ -257,10 +255,10 @@ clean-all: clean
 			echo "Removing all unused volumes..."; \
 			docker volume prune -f; \
 			echo ""; \
-			echo "Removing all dangling images..."; \
-			docker image prune -a -f; \
-			echo ""; \
-			echo "✓ All Docker resources cleaned!"; \
+			#echo "Removing all dangling images..."; \
+			#docker image prune -a -f; \
+			#echo ""; \
+			echo "✓ All Docker resources cleaned, except images!"; \
 			;; \
 		*) \
 			echo "Clean cancelled."; \

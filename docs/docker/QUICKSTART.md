@@ -30,7 +30,7 @@ This guide provides quick instructions for building and deploying II-Researcher 
 Copy and configure the environment template:
 
 ```bash
-cp env.template .env
+# cp env.test .env
 # Edit .env and add your API keys
 ```
 
@@ -425,7 +425,7 @@ git clone https://github.com/Intelligent-Internet/ii-researcher.git
 cd ii-researcher
 
 # 2. Create environment file
-cp env.template .env
+# cp env.test .env
 # Edit .env with your API keys
 
 # 3. Build local image

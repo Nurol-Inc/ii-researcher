@@ -7,56 +7,19 @@ services:
   ii-researcher:
     image: nurol/ii-researcher:latest
     container_name: ii-researcher
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
     ports:
-      - "3000:3000"  # Frontend
-      - "8000:8000"  # API
+      - "3001:3000"  # Frontend
+      - "8001:8000"  # API
       - "8765:8765"  # MCP Server (HTTP mode)
+    
+    # Load all environment variables from env.test file
+    # Create .env for local overrides: cp env.test .env
+    env_file:
+      - env.test
+    
+    # Override or add specific environment variables if needed
     environment:
-      # Service Mode
       - SERVICE_MODE=all
-      
-      # LLM Configuration (point to external LiteLLM or LLM service)
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://localhost:4000}
-      - STRATEGIC_LLM=${STRATEGIC_LLM:-gpt-4o}
-      - SMART_LLM=${SMART_LLM:-gpt-4o}
-      - FAST_LLM=${FAST_LLM:-gemini-lite}
-      
-      # Reasoning Model Configuration
-      - R_MODEL=${R_MODEL:-r1}
-      - R_TEMPERATURE=${R_TEMPERATURE:-0.2}
-      - R_REPORT_MODEL=${R_REPORT_MODEL:-gpt-4o}
-      - R_PRESENCE_PENALTY=${R_PRESENCE_PENALTY:-0}
-      
-      # Search Provider Configuration
-      - SEARCH_PROVIDER=${SEARCH_PROVIDER:-serpapi}
-      - TAVILY_API_KEY=${TAVILY_API_KEY}
-      - SERPAPI_API_KEY=${SERPAPI_API_KEY}
-      
-      # Scraper Provider Configuration
-      - SCRAPER_PROVIDER=${SCRAPER_PROVIDER:-firecrawl}
-      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
-      
-      # Compression Configuration
-      - COMPRESS_EMBEDDING_MODEL=${COMPRESS_EMBEDDING_MODEL:-text-embedding-3-large}
-      - COMPRESS_SIMILARITY_THRESHOLD=${COMPRESS_SIMILARITY_THRESHOLD:-0.3}
-      - COMPRESS_MAX_OUTPUT_WORDS=${COMPRESS_MAX_OUTPUT_WORDS:-4096}
-      - COMPRESS_MAX_INPUT_WORDS=${COMPRESS_MAX_INPUT_WORDS:-32000}
-      - USE_LLM_COMPRESSOR=${USE_LLM_COMPRESSOR:-false}
-      
-      # Timeout Settings
-      - SEARCH_PROCESS_TIMEOUT=${SEARCH_PROCESS_TIMEOUT:-300}
-      - SEARCH_QUERY_TIMEOUT=${SEARCH_QUERY_TIMEOUT:-20}
-      - SCRAPE_URL_TIMEOUT=${SCRAPE_URL_TIMEOUT:-30}
-      - STEP_SLEEP=${STEP_SLEEP:-100}
-      
-      # Frontend Configuration
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_TELEMETRY_DISABLED=1
     
     restart: unless-stopped
     

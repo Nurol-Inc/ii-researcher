@@ -221,7 +221,9 @@ docker run --rm \
 
 ## 🔧 Environment Variables
 
-See `env.template` in the project root for all available environment variables.
+See `env.test` and `env.template` in the project root for all available environment variables.
+
+Docker Compose uses `env.test` by default. For local development, copy to `.env` and customize.
 
 ### Required Variables
 
@@ -339,7 +341,7 @@ make clean
 ### Build Files
 - **Makefile**: `/Makefile`
 - **Docker Compose**: `/docker-compose.yml`
-- **Environment Template**: `/env.template`
+- **Environment Files**: `/env.test`, `/env.template`
 
 ---
 
