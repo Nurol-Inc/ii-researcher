@@ -1,10 +1,10 @@
-# Docker Build Files for II-Researcher
+# Container Build Files for II-Researcher
 
-This directory contains all Docker-related files for building and running II-Researcher containers.
+This directory contains all container-related files for building and running II-Researcher containers.
 
 ---
 
-## 📦 Docker Images
+## 📦 Container Images
 
 II-Researcher provides three image options:
 
@@ -30,7 +30,7 @@ II-Researcher provides three image options:
 
 ## 📁 Files Overview
 
-### Active Dockerfiles
+### Active Container Files
 
 #### `Dockerfile` (All-in-One)
 - **Purpose:** Unified container with all services
@@ -122,13 +122,13 @@ make push-all             # All images
 
 ```bash
 # All-in-One
-docker build -f docker/Dockerfile -t nurol/ii-researcher:latest .
+docker build -f container/Dockerfile -t nurol/ii-researcher:latest .
 
 # Core Layer
-docker build -f docker/Dockerfile.core -t nurol/ii-researcher-core:latest .
+docker build -f container/Dockerfile.core -t nurol/ii-researcher-core:latest .
 
 # Service Layer (requires core image)
-docker build -f docker/Dockerfile.svc \
+docker build -f container/Dockerfile.svc \
   --build-arg IMAGE_NAME=nurol/ii-researcher \
   --build-arg IMAGE_VERSION=latest \
   -t nurol/ii-researcher-svc:latest .
@@ -136,7 +136,7 @@ docker build -f docker/Dockerfile.svc \
 # Multi-arch build
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -f docker/Dockerfile \
+  -f container/Dockerfile \
   -t registry.tunnel.xellence.us/nurol/ii-researcher:latest \
   --push \
   .
@@ -311,8 +311,8 @@ docker exec ii-researcher curl http://localhost:8000
 ### Permission issues
 ```bash
 # Ensure entrypoint is executable
-chmod +x docker/entrypoint.sh
-chmod +x docker/entrypoint-svc.sh
+chmod +x container/entrypoint.sh
+chmod +x container/entrypoint-svc.sh
 ```
 
 ### Build fails
@@ -333,10 +333,10 @@ make clean
 ## 📚 Additional Resources
 
 ### Documentation
-- **Quick Start**: `/docs/docker/QUICKSTART.md`
-- **Complete Guide**: `/docs/docker/DOCKER.md`
+- **Quick Start**: `/docs/container/QUICKSTART.md`
+- **Complete Guide**: `/docs/container/DOCKER.md`
 - **Architecture**: `/docs/architecture/ARCHITECTURE.md`
-- **Layered Architecture**: `/docs/docker/LAYERED_ARCHITECTURE.md`
+- **Layered Architecture**: `/docs/container/LAYERED_ARCHITECTURE.md`
 
 ### Build Files
 - **Makefile**: `/Makefile`

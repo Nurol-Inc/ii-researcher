@@ -420,6 +420,6 @@ docker compose -f docker-compose-legacy.yml --env-file .env.prod up -d
 ## See Also
 
 - [Docker Compose Quick Start](QUICKSTART.md)
-- [Docker Deployment Guide](DOCKER.md)
+- [Docker Deployment Guide](CONTAINER.md)
 - [Architecture Documentation](../architecture/ARCHITECTURE.md)
 - [Main README](../../README.md)

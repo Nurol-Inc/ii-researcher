@@ -3,9 +3,15 @@
 # Multi-architecture support: amd64, arm64
 
 # ============================================================================
+# Version Arguments
+# ============================================================================
+ARG PYTHON_VERSION=3.12.12
+ARG NODE_VERSION=25.3.0-alpine3.22
+
+# ============================================================================
 # Stage 1: Frontend Builder
 # ============================================================================
-FROM node:18-alpine AS frontend-builder
+FROM node:${NODE_VERSION} AS frontend-builder
 
 WORKDIR /app/frontend
 
@@ -33,7 +39,7 @@ RUN if [ -f yarn.lock ]; then yarn build; \
 # ============================================================================
 # Stage 2: Python Base
 # ============================================================================
-FROM python:3.10.15-slim AS python-base
+FROM python:${PYTHON_VERSION}-slim AS python-base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -65,7 +71,7 @@ RUN pip install --upgrade pip setuptools wheel && \
 # ============================================================================
 # Stage 4: Node.js Runtime (for frontend)
 # ============================================================================
-FROM node:18-alpine AS node-runtime
+FROM node:${NODE_VERSION} AS node-runtime
 
 # Create frontend user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -108,7 +114,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy Python dependencies from deps stage
-COPY --from=python-deps /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+ENV PYTHON_SHORT_VERSION=${PYTHON_VERSION%.*}
+COPY --from=python-deps /usr/local/lib/python${PYTHON_SHORT_VERSION}/site-packages /usr/local/lib/python${PYTHON_SHORT_VERSION}/site-packages
 COPY --from=python-deps /usr/local/bin /usr/local/bin
 
 # Copy application code
@@ -124,11 +131,11 @@ RUN pip install --no-deps -e .
 COPY --from=node-runtime /app/frontend ./frontend
 
 # Copy entrypoint script
-COPY docker/entrypoint.sh /app/entrypoint.sh
+COPY container/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Copy supervisor configuration
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY container/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Create logs directory
 RUN mkdir -p /var/log/supervisor /var/log/ii-researcher

@@ -16,8 +16,10 @@ PLATFORMS := linux/amd64,linux/arm64
 GIT_TAG := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.1")
 VERSION := $(GIT_TAG)
 
-# Remove 'v' prefix if present for image tag
-IMAGE_VERSION := $(patsubst v%,%,$(VERSION))
+# Remove 'v' prefix if present for image tag - keep it for container image build
+# IMAGE_VERSION := $(patsubst v%,%,$(VERSION))
+# Keep the version as-is (including 'v' prefix) for image tag
+IMAGE_VERSION := $(VERSION)
 FULL_IMAGE := $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_VERSION)
 LATEST_IMAGE := $(REGISTRY)/$(IMAGE_NAME):latest
 FULL_IMAGE_CORE := $(REGISTRY)/$(IMAGE_NAME_CORE):$(IMAGE_VERSION)
@@ -26,7 +28,7 @@ FULL_IMAGE_SVC := $(REGISTRY)/$(IMAGE_NAME_SVC):$(IMAGE_VERSION)
 LATEST_IMAGE_SVC := $(REGISTRY)/$(IMAGE_NAME_SVC):latest
 
 # Docker build context
-DOCKER_DIR := docker
+DOCKER_DIR := container
 DOCKERFILE := $(DOCKER_DIR)/Dockerfile
 DOCKERFILE_CORE := $(DOCKER_DIR)/Dockerfile.core
 DOCKERFILE_SVC := $(DOCKER_DIR)/Dockerfile.svc

@@ -1,6 +1,12 @@
 # syntax=docker.io/docker/dockerfile:1
 
-FROM node:18-alpine AS base
+# ============================================================================
+# Version Arguments
+# ============================================================================
+ARG NODE_VERSION=25.3.0-alpine3.22
+ARG ALPINE_VERSION=3.22.2
+
+FROM node:${NODE_VERSION} AS base
 
 # Install dependencies only when needed
 FROM base AS deps

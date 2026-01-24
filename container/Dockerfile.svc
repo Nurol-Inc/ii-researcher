@@ -3,6 +3,12 @@
 # Builds on top of Core layer
 
 # ============================================================================
+# Version Arguments
+# ============================================================================
+ARG PYTHON_VERSION=3.12.12
+ARG ALPINE_VERSION=3.22.2
+
+# ============================================================================
 # Build from Core Layer
 # ============================================================================
 ARG CORE_IMAGE=nurol/ii-researcher-core:latest
@@ -11,7 +17,7 @@ FROM ${CORE_IMAGE} AS core-base
 # ============================================================================
 # Service Layer Runtime
 # ============================================================================
-FROM python:3.10.15-slim AS runtime
+FROM python:${PYTHON_VERSION}-slim AS runtime
 
 # Build arguments
 ARG VERSION=0.0.1
@@ -42,7 +48,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy Python environment from core layer
-COPY --from=core-base /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+ENV PYTHON_SHORT_VERSION=${PYTHON_VERSION%.*}
+COPY --from=core-base /usr/local/lib/python${PYTHON_SHORT_VERSION}/site-packages /usr/local/lib/python${PYTHON_SHORT_VERSION}/site-packages
 COPY --from=core-base /usr/local/bin /usr/local/bin
 COPY --from=core-base /app/ii_researcher /app/ii_researcher
 COPY --from=core-base /app/pyproject.toml /app/pyproject.toml

@@ -32,7 +32,7 @@ The ii-researcher frontend now supports **runtime configuration** for the API UR
 - Added documentation and examples for different use cases
 - Fixed incomplete URL in `env.test` (`http://localhost:` → `http://localhost:8000`)
 
-#### 5. Container Entrypoint (`docker/entrypoint.sh`)
+#### 5. Container Entrypoint (`container/entrypoint.sh`)
 - Auto-detects and passes `API_URL` to frontend Node.js process
 - Backwards compatible with `NEXT_PUBLIC_API_URL`
 - Logs configured API URL for debugging
@@ -172,7 +172,7 @@ Fixed 404 error with vLLM integration:
 - `frontend/app/page.tsx` - Use runtime config
 - `env.template` - Updated variable name and documentation
 - `env.test` - Updated variable name, fixed URL, added examples
-- `docker/entrypoint.sh` - Pass API_URL to frontend process
+- `container/entrypoint.sh` - Pass API_URL to frontend process
 - `pyproject.toml` - Updated ddgs package
 - `ii_researcher/tool_clients/search_client.py` - Updated import
 

@@ -2,7 +2,13 @@
 # Contains: Reasoning Agent, Tool Clients (Search, Scraper, Compressor)
 # This is the foundational layer used by service layer components
 
-FROM python:3.10.15-slim AS base
+# ============================================================================
+# Version Arguments
+# ============================================================================
+ARG PYTHON_VERSION=3.12.12
+ARG ALPINE_VERSION=3.22.2
+
+FROM python:${PYTHON_VERSION}-slim AS base
 
 # Build arguments
 ARG VERSION=0.0.1

@@ -1,4 +1,4 @@
-# II-Researcher Docker Documentation
+# II-Researcher Container Documentation
 
 ## Table of Contents
 
@@ -383,7 +383,7 @@ This will:
 
 ```bash
 docker build \
-  --file docker/Dockerfile \
+  --file container/Dockerfile \
   --tag nurol/ii-researcher:0.1.5 \
   --tag nurol/ii-researcher:latest \
   .
@@ -398,7 +398,7 @@ docker buildx create --name ii-researcher-builder --use
 # Build and push
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  --file docker/Dockerfile \
+  --file container/Dockerfile \
   --tag registry.tunnel.xellence.us/nurol/ii-researcher:0.1.5 \
   --tag registry.tunnel.xellence.us/nurol/ii-researcher:latest \
   --push \

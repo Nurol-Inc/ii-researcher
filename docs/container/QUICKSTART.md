@@ -1,4 +1,4 @@
-# II-Researcher Docker Quick Start Guide
+# II-Researcher Container Quick Start Guide
 
 This guide provides quick instructions for building and deploying II-Researcher with Docker.
 
@@ -50,7 +50,7 @@ make build-local
 
 Or manually:
 ```bash
-docker build -f docker/Dockerfile -t nurol/ii-researcher:latest .
+docker build -f container/Dockerfile -t nurol/ii-researcher:latest .
 ```
 
 ### 3. Run the Container
@@ -459,9 +459,9 @@ make clean
 For more detailed information, see:
 
 - **docs/architecture/ARCHITECTURE.md**: System architecture and component details
-- **docs/docker/DOCKER.md**: Comprehensive Docker documentation
-- **docs/docker/LAYERED_ARCHITECTURE.md**: Layered architecture guide
-- **docker/README.md**: Docker build files documentation
+- **docs/container/CONTAINER.md**: Comprehensive Docker documentation
+- **docs/container/LAYERED_ARCHITECTURE.md**: Layered architecture guide
+- **container/README.md**: Docker build files documentation
 - **README.md**: Main project documentation
 
 ---

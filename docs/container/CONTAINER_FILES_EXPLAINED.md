@@ -6,7 +6,7 @@ This document explains the purpose of each Dockerfile and docker-compose file.
 
 ## Dockerfiles
 
-### `docker/Dockerfile` (Main)
+### `container/Dockerfile` (Main)
 
 **Purpose:** Unified container with all project services
 
@@ -21,7 +21,7 @@ This document explains the purpose of each Dockerfile and docker-compose file.
 ```bash
 make build-local
 # or
-docker build -f docker/Dockerfile -t nurol/ii-researcher:latest .
+docker build -f container/Dockerfile -t nurol/ii-researcher:latest .
 ```
 
 **Service Modes:**
@@ -35,7 +35,7 @@ docker run nurol/ii-researcher:latest cli        # CLI mode
 
 ---
 
-### `docker/Dockerfile.api` (Legacy)
+### `container/Dockerfile.api` (Legacy)
 
 **Purpose:** API service only (original separate container)
 
@@ -45,7 +45,7 @@ docker run nurol/ii-researcher:latest cli        # CLI mode
 
 ---
 
-### `docker/Dockerfile.litellm` (Deprecated)
+### `container/Dockerfile.litellm` (Deprecated)
 
 **Purpose:** LiteLLM proxy (removed from project)
 
@@ -120,9 +120,9 @@ docker compose -f docker-compose-legacy.yml up -d
 
 | Scenario | Use | Command |
 |----------|-----|---------|
-| **Production** | `docker/Dockerfile` | `make build-local` |
-| **All services** | `docker/Dockerfile` | `docker run ... all` |
-| **Single service** | `docker/Dockerfile` | `docker run ... api/frontend/mcp` |
+| **Production** | `container/Dockerfile` | `make build-local` |
+| **All services** | `container/Dockerfile` | `docker run ... all` |
+| **Single service** | `container/Dockerfile` | `docker run ... api/frontend/mcp` |
 
 ### Which Docker Compose?
 
@@ -136,16 +136,16 @@ docker compose -f docker-compose-legacy.yml up -d
 ## File Status
 
 ### ✅ Active
-- `docker/Dockerfile` - Main unified container
+- `container/Dockerfile` - Main unified container
 - `docker-compose.yml` - Current deployment
 
 ### 📦 Legacy
-- `docker/Dockerfile.api` - Old API container
+- `container/Dockerfile.api` - Old API container
 - `frontend/Dockerfile` - Old frontend container
 - `docker-compose-legacy.yml` - Old separate containers
 
 ### ❌ Deprecated
-- `docker/Dockerfile.litellm` - Use official LiteLLM image
+- `container/Dockerfile.litellm` - Use official LiteLLM image
 
 ---
 

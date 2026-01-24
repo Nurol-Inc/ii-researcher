@@ -250,7 +250,7 @@ The frontend will be available at http://localhost:3000
 
 ## 🐳 Run with Docker
 
-For detailed Docker documentation, see [`docs/docker/QUICKSTART.md`](docs/docker/QUICKSTART.md) or [`docs/docker/DOCKER.md`](docs/docker/DOCKER.md).
+For detailed Container documentation, see [`docs/container/QUICKSTART.md`](docs/container/QUICKSTART.md) or [`docs/container/CONTAINER.md`](docs/container/CONTAINER.md).
 
 ### Quick Start
 
@@ -289,7 +289,7 @@ docker compose logs -f ii-researcher
 docker compose down
 ```
 
-**Note:** External LLM services (like LiteLLM) should be run separately if needed. See [`docs/docker/CHANGELOG_LITELLM_REMOVAL.md`](docs/docker/CHANGELOG_LITELLM_REMOVAL.md) for details.
+**Note:** External LLM services (like LiteLLM) should be run separately if needed.
 
 ## 🛠️ Running QwQ Model with SGLang
 
@@ -315,17 +315,16 @@ II-Researcher is inspired by and built with the support of the open-source commu
 Comprehensive documentation is available in the [`docs/`](docs/) directory:
 
 ### Quick Start
-- **[Docker Quick Start Guide](docs/docker/QUICKSTART.md)** - Complete Docker setup and usage
+- **[Container Quick Start Guide](docs/container/QUICKSTART.md)** - Complete Docker setup and usage
 
 ### Architecture & Design
 - **[System Architecture](docs/architecture/ARCHITECTURE.md)** - Complete system design and components
-- **[Layered Architecture](docs/docker/LAYERED_ARCHITECTURE.md)** - Core, Service, and All-in-One images
 
-### Docker & Deployment
-- **[Docker Guide](docs/docker/DOCKER.md)** - Complete Docker documentation
-- **[Docker Files Explained](docs/docker/DOCKER_FILES_EXPLAINED.md)** - Purpose of each Docker file
-- **[Build Verification](docs/docker/BUILD_VERIFICATION.md)** - Verifying builds
-- **[LiteLLM Removal Changelog](docs/docker/CHANGELOG_LITELLM_REMOVAL.md)** - Running LiteLLM separately
+### Container & Deployment
+- **[Container Guide](docs/container/CONTAINER.md)** - Complete Container documentation
+- **[Container Files Explained](docs/container/CONTAINER_FILES_EXPLAINED.md)** - Purpose of each container file
+- **[Container Quick Start](docs/container/QUICKSTART.md)** - Quick start guide
+- **[Environment Configuration](docs/container/ENV_FILE_GUIDE.md)** - Environment variables guide
 
 ### Implementation Guides
 - **[Docker Summary](docs/guides/DOCKER_SUMMARY.md)** - Implementation overview
