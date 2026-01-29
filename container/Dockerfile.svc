@@ -6,6 +6,7 @@
 # Version Arguments
 # ============================================================================
 ARG PYTHON_VERSION=3.12.12
+ARG DEBIAN_VERSION=bookworm
 ARG ALPINE_VERSION=3.22.2
 
 # ============================================================================
@@ -17,7 +18,7 @@ FROM ${CORE_IMAGE} AS core-base
 # ============================================================================
 # Service Layer Runtime
 # ============================================================================
-FROM python:${PYTHON_VERSION}-slim AS runtime
+FROM python:${PYTHON_VERSION}-slim-${DEBIAN_VERSION} AS runtime
 
 # Build arguments
 ARG VERSION=0.0.1

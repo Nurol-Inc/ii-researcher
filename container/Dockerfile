@@ -6,6 +6,7 @@
 # Version Arguments
 # ============================================================================
 ARG PYTHON_VERSION=3.12.12
+ARG DEBIAN_VERSION=bookworm
 ARG NODE_VERSION=25.3.0-alpine3.22
 
 # ============================================================================
@@ -39,7 +40,7 @@ RUN if [ -f yarn.lock ]; then yarn build; \
 # ============================================================================
 # Stage 2: Python Base
 # ============================================================================
-FROM python:${PYTHON_VERSION}-slim AS python-base
+FROM python:${PYTHON_VERSION}-slim-${DEBIAN_VERSION} AS python-base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
