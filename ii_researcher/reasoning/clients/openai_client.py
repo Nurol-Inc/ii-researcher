@@ -18,22 +18,41 @@ class OpenAIClient:
 
     def __init__(self, config: AgentConfig):
         """Initialize the OpenAI client.
-        
+
         Args:
             config: Session-specific configuration.
         """
         self.config = config
 
+        extra = self.config.llm.extra_headers or {}
+        # When the client sends Authorization in extra_headers, use it as api_key so the
+        # SDK sends a single correct Bearer token (avoids env api_key overwriting or None).
+        api_key = self.config.llm.api_key
+        default_headers = None
+        if extra:
+            auth_header = extra.get("Authorization") or extra.get("authorization")
+            if auth_header:
+                # SDK sets "Bearer " + api_key; pass token only (strip "Bearer " if present).
+                api_key = auth_header.strip()
+                if api_key.lower().startswith("bearer "):
+                    api_key = api_key[7:].strip()
+            # Pass non-Authorization headers only so we don't duplicate Authorization.
+            default_headers = {k: v for k, v in extra.items() if k.lower() != "authorization"}
+            if not default_headers:
+                default_headers = None
+
         # Create synchronous client
         self.client = OpenAI(
-            api_key=self.config.llm.api_key,
+            api_key=api_key,
             base_url=self.config.llm.base_url,
+            default_headers=default_headers,
         )
 
         # Create async client
         self.async_client = AsyncOpenAI(
-            api_key=self.config.llm.api_key,
+            api_key=api_key,
             base_url=self.config.llm.base_url,
+            default_headers=default_headers,
         )
 
     def _get_messages(
@@ -72,7 +91,8 @@ class OpenAIClient:
                 presence_penalty=self.config.llm.presence_penalty,
                 stop=self.config.llm.stop_sequence,
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            return content if content is not None else ""
         except Exception as e:
             logging.error("Error generating completion: %s", str(e))
             raise

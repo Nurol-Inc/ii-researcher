@@ -24,16 +24,32 @@ class Subtopics(BaseModel):
 
 class ReportBuilder:
     def __init__(
-        self, stream_event: Optional[Callable[[str, Dict[str, Any]], None]] = None
+        self,
+        stream_event: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        extra_headers: Optional[Dict[str, str]] = None,
     ):
         self.config = get_report_config()
+        extra = extra_headers or {}
+        api_key = self.config.llm.api_key
+        default_headers = None
+        if extra:
+            auth_header = extra.get("Authorization") or extra.get("authorization")
+            if auth_header:
+                api_key = auth_header.strip()
+                if api_key.lower().startswith("bearer "):
+                    api_key = api_key[7:].strip()
+            default_headers = {k: v for k, v in extra.items() if k.lower() != "authorization"}
+            if not default_headers:
+                default_headers = None
         self.client = OpenAI(
-            api_key=self.config.llm.api_key,
+            api_key=api_key,
             base_url=self.config.llm.base_url,
+            default_headers=default_headers,
         )
         self.async_client = AsyncOpenAI(
-            api_key=self.config.llm.api_key,
+            api_key=api_key,
             base_url=self.config.llm.base_url,
+            default_headers=default_headers,
         )
         self.stream_event = stream_event
 

@@ -44,13 +44,98 @@ Concurrent Session Support:
 """
 
 import asyncio
+import contextvars
 import logging
 import os
 import sys
+import threading
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from enum import Enum
+
+# Context var for request-scoped headers (same-task fallback).
+_mcp_request_headers: contextvars.ContextVar[Optional[Dict[str, str]]] = contextvars.ContextVar(
+    "mcp_request_headers", default=None
+)
+
+# Session-keyed and "last POST" storage so the tool can read headers when it runs in the
+# SSE session's async context (different from the POST request task).
+_request_headers_by_session: Dict[str, Dict[str, str]] = {}
+_request_headers_lock = threading.Lock()
+_last_post_headers: Optional[Dict[str, str]] = None
+
+# Header names we pass through to LLM (only if sent by client).
+_NUROL_LLM_HEADER_NAMES = (
+    (b"authorization", "Authorization"),
+    (b"x-application-name", "X-Application-Name"),
+    (b"x-nurol-application-name", "X-Nurol-Application-Name"),
+)
+
+
+def _extract_llm_request_headers(scope: Dict[str, Any]) -> Optional[Dict[str, str]]:
+    """Extract optional Nurol/LLM headers from ASGI scope. Only include headers the client sent."""
+    if scope.get("type") != "http":
+        return None
+    headers_list = scope.get("headers") or []
+    headers_lower = {k.lower(): v for k, v in headers_list if isinstance(k, bytes)}
+    out = {}
+    for raw_key, canonical_key in _NUROL_LLM_HEADER_NAMES:
+        if raw_key in headers_lower:
+            try:
+                out[canonical_key] = headers_lower[raw_key].decode("utf-8")
+            except Exception:
+                pass
+    return out if out else None
+
+
+def _get_session_id_from_scope(scope: Dict[str, Any]) -> Optional[str]:
+    """Parse session_id from ASGI scope (e.g. query_string for POST /messages/?session_id=xxx)."""
+    if scope.get("type") != "http":
+        return None
+    qs = scope.get("query_string") or b""
+    if not qs:
+        return None
+    try:
+        from urllib.parse import parse_qs
+        params = parse_qs(qs.decode("utf-8"))
+        ids = params.get("session_id") or params.get("session")
+        return ids[0].strip() if ids else None
+    except Exception:
+        return None
+
+
+def _store_request_headers_for_post_messages(scope: Dict[str, Any], headers: Optional[Dict[str, str]]) -> None:
+    """Store extracted headers so the tool can read them when it runs in the SSE session context."""
+    if not headers:
+        return
+    global _last_post_headers
+    with _request_headers_lock:
+        session_id = _get_session_id_from_scope(scope)
+        if session_id:
+            _request_headers_by_session[session_id] = dict(headers)
+            if len(_request_headers_by_session) > 500:
+                for k in list(_request_headers_by_session.keys())[:100]:
+                    _request_headers_by_session.pop(k, None)
+        _last_post_headers = dict(headers)
+
+
+def _get_llm_request_headers_for_tool(ctx: Any) -> Optional[Dict[str, str]]:
+    """Get request headers for LLM pass-through. Tool may run in a different task than the POST."""
+    # 1) Same-task context var (if middleware and tool share context).
+    try:
+        h = _mcp_request_headers.get()
+        if h:
+            return h
+    except LookupError:
+        pass
+    # 2) Session lookup if ctx exposes session_id.
+    session_id = getattr(ctx, "session_id", None) if ctx else None
+    with _request_headers_lock:
+        if session_id and session_id in _request_headers_by_session:
+            return dict(_request_headers_by_session[session_id])
+        # 3) Last POST /messages/ headers (same client, one request at a time).
+        return dict(_last_post_headers) if _last_post_headers else None
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -170,6 +255,7 @@ async def deep_research_impl(
     question: str,
     report_type: str = "advanced",
     progress_callback: Optional[Any] = None,
+    llm_request_headers: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     """
     Perform comprehensive multi-step research on a topic.
@@ -228,6 +314,7 @@ async def deep_research_impl(
             question=question,
             report_type=rt,
             progress_callback=agent_progress_callback,
+            llm_request_headers=llm_request_headers,
         )
         
         # Send initial progress notification
@@ -628,22 +715,18 @@ def create_server(host: str = "0.0.0.0", port: int = 8765, log_level: str = "INF
         Returns:
             Research results including report, sources, and metadata
         """
-        # Create progress callback using Context if available
         progress_callback = None
-        logger.info(f"[deep_research] Context available: {ctx is not None}")
-        if ctx:
-            logger.info(f"[deep_research] Context type: {type(ctx)}, has report_progress: {hasattr(ctx, 'report_progress')}")
+        if ctx and hasattr(ctx, "report_progress"):
             async def progress_callback(progress: float, total: float, message: str):
-                logger.info(f"[deep_research] Sending MCP progress: {progress:.1f}% - {message}")
                 try:
                     await ctx.report_progress(progress, total, message)
-                    logger.info(f"[deep_research] MCP progress sent successfully")
                 except Exception as e:
-                    logger.error(f"[deep_research] MCP progress error: {e}")
-        else:
-            logger.warning("[deep_research] No Context available - progress notifications disabled")
-        
-        return await deep_research_impl(question, report_type, progress_callback)
+                    logger.warning("[deep_research] Progress report failed: %s", e)
+
+        llm_request_headers = _get_llm_request_headers_for_tool(ctx)
+        return await deep_research_impl(
+            question, report_type, progress_callback, llm_request_headers=llm_request_headers
+        )
     
     @server.tool()
     async def web_batch_search(
@@ -831,6 +914,26 @@ def main():
         from starlette.middleware.cors import CORSMiddleware
         from starlette.routing import Mount
 
+        # Set request-scoped headers for LLM pass-through (optional Nurol auth).
+        class NurolHeadersMiddleware:
+            def __init__(self, app):
+                self.app = app
+
+            async def __call__(self, scope, receive, send):
+                token = None
+                if scope.get("type") == "http":
+                    headers = _extract_llm_request_headers(scope)
+                    token = _mcp_request_headers.set(headers)
+                    # Store so the tool can read when it runs in the SSE session (different task).
+                    path = scope.get("path") or ""
+                    if "messages" in path and headers:
+                        _store_request_headers_for_post_messages(scope, headers)
+                try:
+                    await self.app(scope, receive, send)
+                finally:
+                    if token is not None:
+                        _mcp_request_headers.reset(token)
+
         # Inject CORS into every response (including SSE streaming).
         class AddCORSHeadersMiddleware:
             def __init__(self, app):
@@ -875,8 +978,9 @@ def main():
                 ),
             ],
         )
-        app = AddCORSHeadersMiddleware(base_app)
+        app = NurolHeadersMiddleware(AddCORSHeadersMiddleware(base_app))
         logger.info("CORS enabled for browser-based clients")
+        logger.info("Nurol LLM header pass-through enabled (Authorization, X-Application-Name, X-Nurol-Application-Name)")
         uvicorn.run(app, host=args.host, port=args.port)
     else:
         server.run(transport=args.transport)

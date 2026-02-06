@@ -150,6 +150,14 @@
         <option value="basic">Basic (summary)</option>
       </select>
     </div>
+    <div class="form-group">
+      <label for="auth-token">Authorization token (optional)</label>
+      <input type="password" id="auth-token" placeholder="Bearer token for verification (sent to MCP and LLM)" autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label for="app-name">Application name (optional)</label>
+      <input type="text" id="app-name" placeholder="e.g. myapp (sent as X-Nurol-Application-Name to MCP and LLM)" autocomplete="off" />
+    </div>
 
     <div class="actions">
       <button type="button" id="btn-run">Run research</button>
@@ -167,6 +175,8 @@
     const mcpUrlInput = document.getElementById('mcp-url');
     const questionInput = document.getElementById('question');
     const reportTypeSelect = document.getElementById('report-type');
+    const authTokenInput = document.getElementById('auth-token');
+    const appNameInput = document.getElementById('app-name');
     const btnRun = document.getElementById('btn-run');
     const statusEl = document.getElementById('status');
     const outputEl = document.getElementById('output');
@@ -326,9 +336,14 @@
 
         let postUrl = messageEndpoint.startsWith('http') ? messageEndpoint : baseUrl.replace(/\/$/, '') + (messageEndpoint.startsWith('/') ? messageEndpoint : '/' + messageEndpoint);
         if (postUrl.indexOf('?') === -1) postUrl = postUrl.replace(/\/*$/, '/');
+        const authToken = (authTokenInput.value || '').trim();
+        const appName = (appNameInput.value || '').trim();
+        const postHeaders = { 'Content-Type': 'application/json' };
+        if (authToken) postHeaders['Authorization'] = authToken.startsWith('Bearer ') ? authToken : 'Bearer ' + authToken;
+        if (appName) postHeaders['X-Nurol-Application-Name'] = appName;
         const initRes = await fetch(postUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: postHeaders,
           body: JSON.stringify({
             jsonrpc: '2.0',
             method: 'initialize',
@@ -345,7 +360,7 @@
 
         await fetch(postUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: postHeaders,
           body: JSON.stringify({
             jsonrpc: '2.0',
             method: 'tools/call',

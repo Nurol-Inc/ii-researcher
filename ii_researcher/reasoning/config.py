@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
@@ -80,6 +80,7 @@ class LLMConfig(BaseModel):
     report_model: str = Field(
         default_factory=lambda: os.getenv("R_REPORT_MODEL", "gpt-4o")
     )
+    extra_headers: Optional[Dict[str, str]] = None
 
     def get_effective_stop_sequence(self, trace_has_turns: bool = False) -> List[str]:
         """Get effective stop sequence based on state."""

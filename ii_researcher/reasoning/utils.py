@@ -15,6 +15,8 @@ def parse_code_blobs(text: str, tool_names: List[str] = None) -> str:
     Returns:
         `str`: Extracted code block.
     """
+    if text is None:
+        return ""
     # Try to extract code from markdown blocks first
     if tool_names:
         tool_names_pattern = "|".join(map(re.escape, tool_names))

@@ -40,6 +40,7 @@ class ReasoningAgent:
         stream_event: Optional[Callable[[str, Dict[str, Any]], None]] = None,
         override_config: Optional[Dict[str, Any]] = None,
         progress_callback: Optional[ProgressCallback] = None,
+        llm_request_headers: Optional[Dict[str, str]] = None,
     ):
         """Initialize the agent.
 
@@ -49,6 +50,7 @@ class ReasoningAgent:
             stream_event: Optional callback for streaming events
             override_config: Optional configuration overrides
             progress_callback: Optional async callback for progress updates (progress, total, message)
+            llm_request_headers: Optional headers to forward to LLM API (e.g. Authorization, X-Application-Name)
         """
         self.question = question
         self.tool_history = ToolHistory()
@@ -56,20 +58,23 @@ class ReasoningAgent:
         self.stream_event = stream_event
         self.report_type = report_type
         self._progress_callback = progress_callback
-        
+        self._llm_request_headers = llm_request_headers if llm_request_headers else None
+
         # Estimated total turns for progress calculation
         self._estimated_total_turns = 10
         self._current_stage = "initializing"
-        
+
         # Session-isolated state for tools
         self._session_searched_queries: Set[str] = set()
         self._session_visited_urls: Set[str] = set()
-        
+
         # Create a new isolated config instance for this session
         self.config = create_config()
         if override_config:
             update_config(override_config, self.config)
-        
+        if self._llm_request_headers:
+            self.config.llm.extra_headers = self._llm_request_headers
+
         # Create OpenAI client with session config
         self.client = OpenAIClient(config=self.config)
 
@@ -274,7 +279,9 @@ class ReasoningAgent:
 
             turn += 1
 
-            # Parse the output
+            # Parse the output (guard against None from API)
+            if content is None:
+                content = ""
             try:
                 model_output = ModelOutput.from_string(
                     content, tool_names=get_all_tools().keys()
@@ -335,7 +342,10 @@ class ReasoningAgent:
 
                 # Generate the report
                 try:
-                    report_builder = ReportBuilder(self.stream_event)
+                    report_builder = ReportBuilder(
+                        self.stream_event,
+                        extra_headers=self._llm_request_headers,
+                    )
                     
                     await self._report_progress(
                         self._calculate_progress(turn, "generating_report", 0.4),

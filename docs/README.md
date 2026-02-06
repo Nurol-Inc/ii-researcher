@@ -15,6 +15,8 @@ docs/
 │   ├── QUICKSTART.md      # Quick start
 │   ├── ENV_FILE_GUIDE.md  # Environment configuration
 │   └── CONTAINER_FILES_EXPLAINED.md  # File purposes
+├── design/                # Design documents (for review)
+│   └── MCP_NUROL_LLM_HEADERS_PASSTHROUGH.md  # Pass Nurol auth headers to LLM
 └── guides/                # Testing and reference
     ├── CONTAINER_CHECKLIST.md  # Docker testing checklist
     └── MCP.md             # MCP quick start, Docker, GUI, troubleshooting
@@ -45,6 +47,9 @@ docs/
 
 ### MCP Server
 - **[MCP.md](guides/MCP.md)** - MCP quick start, Docker (compose-mcp), browser GUI, config, troubleshooting
+
+### Design (for review)
+- **[MCP Nurol LLM headers pass-through](design/MCP_NUROL_LLM_HEADERS_PASSTHROUGH.md)** - Forward Authorization and application headers from SSE to LLM calls
 
 ### Testing
 - **[CONTAINER_CHECKLIST.md](guides/CONTAINER_CHECKLIST.md)** - Testing procedures and troubleshooting

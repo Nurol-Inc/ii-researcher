@@ -25,7 +25,7 @@ class ModelOutput(BaseModel):
         Returns:
             ModelOutput instance
         """
-        raw = string
+        raw = string if string is not None else ""
         action_string = parse_code_blobs(raw, tool_names)
 
         if action_string:

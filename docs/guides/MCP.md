@@ -56,13 +56,13 @@ Serve the file over HTTP if needed to avoid CORS (e.g. `python -m http.server 80
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `OPENAI_API_KEY` | LLM auth | Required |
-| `OPENAI_BASE_URL` | LLM endpoint | `http://localhost:4000` |
+| `OPENAI_BASE_URL` | LLM endpoint (http or https) | `http://localhost:4000` |
 | `SEARCH_PROVIDER` | duckduckgo, tavily, serpapi, jina | duckduckgo |
 | `SCRAPER_PROVIDER` | bs, firecrawl, browser, jina | firecrawl |
 | `DEEP_RESEARCH_TIMEOUT` | Timeout (seconds) | 600 |
 | `MAX_CONCURRENT_BROWSER_SCRAPES` | Max concurrent browser scrapes | 5 |
 
-For Docker, use `host.docker.internal` in `OPENAI_BASE_URL` to reach an LLM on the host.
+For Docker, use `host.docker.internal` in `OPENAI_BASE_URL` to reach an LLM on the host. **HTTPS** URLs are supported (e.g. `https://your-gateway.example/vllm/v1`). When using a Nurol/vLLM-style gateway, set `OPENAI_BASE_URL` to the API base and use the browser GUI’s optional **Authorization token** and **Application name** fields; those headers are passed through to the LLM.
 
 ## Tools summary
 
@@ -82,6 +82,7 @@ For Docker, use `host.docker.internal` in `OPENAI_BASE_URL` to reach an LLM on t
 | Connection refused (LLM) | API not reachable at `OPENAI_BASE_URL` | Start API; from Docker use `host.docker.internal:<port>` in `OPENAI_BASE_URL` |
 | Invalid session ID / 400 | Client sent session_id with trailing slash | Use current mcp-gui.html (single SSE, no trailing slash on message URL) |
 | ClosedResourceError / 500 | Client closed SSE before response | Use single SSE connection (do not close after endpoint event) |
+| 401 / auth_error from LLM | Gateway rejected token or missing auth | Set `OPENAI_BASE_URL` to gateway URL; use GUI **Authorization token** and **Application name** so they are passed through |
 | Slow or timeout | Large research or network | Increase `DEEP_RESEARCH_TIMEOUT`; check search/scraper providers |
 
 Server logs: `docker compose -f docker-compose-mcp.yml logs` (or run the server in the foreground with `--log-level DEBUG`).
