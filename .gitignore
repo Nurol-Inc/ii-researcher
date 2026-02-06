@@ -15,11 +15,8 @@ knowledge.json
 questions.json
 answers.json
 queries.json
-*.html
-*.js
 litellm.yaml
 .env
-
 
 # dependencies
 /frontend/node_modules
