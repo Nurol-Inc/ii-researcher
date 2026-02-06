@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>II-Researcher MCP</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #1a1a1f;
+      --border: #2a2a32;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #22c55e;
+      --accent-hover: #16a34a;
+      --error: #ef4444;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "SF Mono", "Consolas", "Monaco", monospace;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      padding: 1.5rem;
+      line-height: 1.5;
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-bottom: 1.5rem;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    input[type="text"],
+    input[type="url"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.9rem;
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    input::placeholder,
+    textarea::placeholder { color: var(--muted); }
+    select {
+      cursor: pointer;
+      max-width: 12rem;
+    }
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 1.25rem;
+    }
+    button {
+      padding: 0.6rem 1.25rem;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: var(--accent-hover); }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .status {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .status.error { color: var(--error); }
+    .status.ok { color: var(--accent); }
+    .output {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.85rem;
+      max-height: 60vh;
+      overflow: auto;
+    }
+    .output.empty { color: var(--muted); }
+    .output h3 {
+      font-size: 0.9rem;
+      margin: 0 0 0.5rem 0;
+      color: var(--accent);
+    }
+    .output .report { margin-bottom: 1rem; }
+    .output .meta { color: var(--muted); font-size: 0.8rem; }
+    .cors-note {
+      margin-top: 1.5rem;
+      padding: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>II-Researcher MCP</h1>
+    <p class="subtitle">Simple GUI for the MCP deep_research tool (SSE transport)</p>
+
+    <div class="form-group">
+      <label for="mcp-url">MCP server URL</label>
+      <input type="url" id="mcp-url" placeholder="e.g. http://host:8765" />
+    </div>
+    <div class="form-group">
+      <label for="question">Research question</label>
+      <textarea id="question" placeholder="e.g. What are the main applications of quantum computing?"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="report-type">Report type</label>
+      <select id="report-type">
+        <option value="advanced">Advanced (comprehensive)</option>
+        <option value="basic">Basic (summary)</option>
+      </select>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="btn-run">Run research</button>
+      <span class="status" id="status"></span>
+    </div>
+
+    <div class="output empty" id="output">Results will appear here. Enter a question and click Run research.</div>
+
+    <div class="cors-note" id="cors-note">
+      When the MCP server runs on another host, set MCP server URL to <code>http://&lt;server-host&gt;:8765</code>. You can serve this page from any host; the URL field must point to the MCP server address.
+    </div>
+  </div>
+
+  <script>
+    const mcpUrlInput = document.getElementById('mcp-url');
+    const questionInput = document.getElementById('question');
+    const reportTypeSelect = document.getElementById('report-type');
+    const btnRun = document.getElementById('btn-run');
+    const statusEl = document.getElementById('status');
+    const outputEl = document.getElementById('output');
+
+    const MCP_URL_KEY = 'ii-researcher-mcp-url';
+
+    function normalizeMcpUrl(val) {
+      if (!val || typeof val !== 'string') return '';
+      val = val.trim().replace(/\/+$/, '');
+      if (!val) return '';
+      if (!/^https?:\/\//i.test(val)) val = 'http://' + val;
+      val = val.replace(/\/+$/, '');
+      try {
+        return new URL(val).href.replace(/\/$/, '');
+      } catch (_) {
+        return val;
+      }
+    }
+
+    function loadMcpUrl() {
+      try {
+        const saved = localStorage.getItem(MCP_URL_KEY);
+        if (saved) {
+          const normalized = normalizeMcpUrl(saved);
+          mcpUrlInput.value = normalized || saved;
+        }
+      } catch (_) {}
+    }
+
+    function saveMcpUrl() {
+      const val = mcpUrlInput.value.trim();
+      if (!val) return;
+      const normalized = normalizeMcpUrl(val);
+      mcpUrlInput.value = normalized;
+      try {
+        localStorage.setItem(MCP_URL_KEY, normalized);
+      } catch (_) {}
+    }
+
+    loadMcpUrl();
+
+    // Suggest MCP URL in placeholder: same host as page when served over http(s), else generic example
+    const MCP_DEFAULT_PORT = 8765;
+    function defaultMcpBaseUrl() {
+      try {
+        const u = window.location;
+        if ((u.protocol === 'http:' || u.protocol === 'https:') && u.hostname)
+          return u.protocol + '//' + u.hostname + ':' + MCP_DEFAULT_PORT;
+      } catch (_) {}
+      return 'http://localhost:' + MCP_DEFAULT_PORT;
+    }
+    function isUrlValid(url) {
+      try {
+        const u = new URL(url);
+        return !!u.hostname;
+      } catch (_) {
+        return false;
+      }
+    }
+    try {
+      const u = window.location;
+      if (u.protocol === 'http:' || u.protocol === 'https:')
+        mcpUrlInput.placeholder = 'e.g. http://' + u.hostname + ':' + MCP_DEFAULT_PORT + ' or http://server:' + MCP_DEFAULT_PORT;
+      else
+        mcpUrlInput.placeholder = 'e.g. http://server:' + MCP_DEFAULT_PORT;
+    } catch (_) {}
+
+    mcpUrlInput.addEventListener('change', saveMcpUrl);
+    mcpUrlInput.addEventListener('blur', saveMcpUrl);
+
+    function setStatus(msg, isError = false) {
+      statusEl.textContent = msg;
+      statusEl.className = 'status' + (isError ? ' error' : msg ? ' ok' : '');
+    }
+
+    function setOutput(html, isEmpty = false) {
+      outputEl.innerHTML = html;
+      outputEl.classList.toggle('empty', isEmpty);
+    }
+
+    async function runResearch() {
+      saveMcpUrl();
+      const raw = mcpUrlInput.value.trim();
+      const baseUrl = raw ? normalizeMcpUrl(raw) : defaultMcpBaseUrl();
+      if (!isUrlValid(baseUrl)) {
+        setStatus('Enter a valid MCP server URL (e.g. http://server:8765).', true);
+        setOutput('The MCP server URL is missing or invalid. Please enter a full URL such as <code>http://localhost:8765</code> or <code>http://your-server:8765</code>.', false);
+        return;
+      }
+      const question = (questionInput.value || '').trim();
+      if (!question) {
+        setStatus('Enter a research question.', true);
+        return;
+      }
+
+      const reportType = reportTypeSelect.value || 'advanced';
+      const sseUrl = baseUrl.replace(/\/$/, '') + '/sse';
+
+      btnRun.disabled = true;
+      setStatus('Connecting to MCP (SSE)…');
+      setOutput('Connecting to ' + escapeHtml(sseUrl) + ', then running deep_research. This can take 1–5+ minutes…', false);
+
+      let resultHtml = '';
+      const startTime = Date.now();
+      try {
+        let messageEndpoint = baseUrl.replace(/\/$/, '') + '/mcp/';
+        const es = new EventSource(sseUrl);
+        const endpointPromise = new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            es.close();
+            resolve(null);
+          }, 8000);
+          es.addEventListener('endpoint', (e) => {
+            clearTimeout(timeout);
+            try {
+              const d = e.data;
+              const url = (d && d.startsWith('{') ? JSON.parse(d) : d);
+              const ep = typeof url === 'string' ? url : (url && (url.endpoint || url.url)) || null;
+              if (ep) messageEndpoint = ep.replace(/\/$/, '');
+              resolve(messageEndpoint);
+            } catch (_) {
+              resolve(null);
+            }
+          });
+          es.onerror = () => {
+            clearTimeout(timeout);
+            es.close();
+            reject(new Error('SSE connection failed. Check URL and CORS.'));
+          };
+        });
+        await endpointPromise;
+
+        setStatus('Session started, calling deep_research…');
+
+        const reqId = Date.now();
+        const responsePromise = new Promise((resolve, reject) => {
+          const t = setTimeout(() => {
+            es.close();
+            reject(new Error('Request timed out (10 min).'));
+          }, 600_000);
+          es.addEventListener('message', (e) => {
+            try {
+              const msg = JSON.parse(e.data);
+              if (msg.id === reqId || msg.id === String(reqId)) {
+                clearTimeout(t);
+                es.close();
+                resolve(msg);
+              }
+            } catch (_) {}
+          });
+          es.onerror = () => {
+            clearTimeout(t);
+            es.close();
+            reject(new Error('SSE stream closed unexpectedly.'));
+          };
+        });
+
+        let postUrl = messageEndpoint.startsWith('http') ? messageEndpoint : baseUrl.replace(/\/$/, '') + (messageEndpoint.startsWith('/') ? messageEndpoint : '/' + messageEndpoint);
+        if (postUrl.indexOf('?') === -1) postUrl = postUrl.replace(/\/*$/, '/');
+        const initRes = await fetch(postUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'initialize',
+            params: {
+              protocolVersion: '2024-11-05',
+              capabilities: {},
+              clientInfo: { name: 'mcp-gui', version: '1.0' }
+            },
+            id: reqId - 1
+          }),
+          signal: AbortSignal.timeout(15000)
+        });
+        if (!initRes.ok) throw new Error('Initialize failed: ' + initRes.status);
+
+        await fetch(postUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'tools/call',
+            params: {
+              name: 'deep_research',
+              arguments: { question, report_type: reportType }
+            },
+            id: reqId
+          }),
+          signal: AbortSignal.timeout(600_000)
+        });
+
+        const data = await responsePromise;
+        const turnaroundMs = Date.now() - startTime;
+        const turnaroundSec = (turnaroundMs / 1000).toFixed(1);
+        const turnaroundStr = turnaroundMs >= 60000
+          ? (Math.floor(turnaroundMs / 60000) + 'm ' + (Math.floor((turnaroundMs % 60000) / 1000)) + 's')
+          : (turnaroundSec + 's');
+
+        if (data.error) {
+          throw new Error(data.error.message || JSON.stringify(data.error));
+        }
+
+        const content = data.result?.content;
+        if (!content || !content.length) {
+          setOutput('<pre>' + escapeHtml(JSON.stringify(data.result, null, 2)) + '</pre>', false);
+          setStatus('Done (raw result).');
+          return;
+        }
+
+        const rawContent = content[0].text;
+        let parsed;
+        try {
+          parsed = JSON.parse(rawContent);
+        } catch (_) {
+          setOutput('<pre>' + escapeHtml(rawContent) + '</pre>', false);
+          setStatus('Done.');
+          return;
+        }
+
+        resultHtml = parsed.error
+          ? '<span class="error">' + escapeHtml(parsed.error) + '</span>'
+          : (function () {
+              const report = parsed.report || '';
+              const meta = parsed.metadata || {};
+              const sources = parsed.sources || {};
+              const visited = (sources.visited_urls || []).slice(0, 20);
+              const queries = (sources.search_queries || []).slice(0, 10);
+              let out = '';
+              if (report) out += '<h3>Report</h3><div class="report">' + escapeHtml(report).replace(/\n/g, '<br>') + '</div>';
+              out += '<div class="meta turnaround">Turnaround: ' + escapeHtml(turnaroundStr) + '</div>';
+              if (meta.duration_seconds != null || meta.turns != null) out += '<div class="meta">Server duration: ' + (meta.duration_seconds ?? '-') + 's · Turns: ' + (meta.turns ?? '-') + '</div>';
+              if (queries.length) { out += '<h3>Search queries</h3><ul>'; queries.forEach(q => { out += '<li>' + escapeHtml(q) + '</li>'; }); out += '</ul>'; }
+              if (visited.length) { out += '<h3>Visited URLs</h3><ul>'; visited.forEach(u => { out += '<li><a href="' + escapeHtml(u) + '" target="_blank" rel="noopener">' + escapeHtml(u) + '</a></li>'; }); out += '</ul>'; }
+              return out || '<pre>' + escapeHtml(JSON.stringify(parsed, null, 2)) + '</pre>';
+            })();
+        setStatus(parsed.error ? 'Error from tool.' : ('Done. Turnaround: ' + turnaroundStr));
+        setOutput(resultHtml || 'No content.', !resultHtml);
+      } catch (err) {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const msg = err.name === 'TimeoutError' ? 'Request timed out (10 min).' : (err.message || String(err));
+        setStatus(msg + ' (after ' + elapsed + 's)', true);
+        setOutput('<span class="error">' + escapeHtml(msg) + '</span>\n\nElapsed: ' + elapsed + 's\n\nCheck: MCP server URL is correct (e.g. http://server:8765), the server is running, and the network allows the connection.', false);
+      } finally {
+        btnRun.disabled = false;
+      }
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    btnRun.addEventListener('click', runResearch);
+    questionInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runResearch();
+    });
+  </script>
+</body>
+</html>
