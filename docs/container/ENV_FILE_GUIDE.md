@@ -51,8 +51,6 @@ cp env.test .env
 nano .env
 ```
 
-### 2. Configure Required Variables
-
 ### Configure Required Variables
 
 At minimum, set these in your `.env` file:

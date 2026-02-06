@@ -892,8 +892,7 @@ docker rmi registry.tunnel.xellence.us/nurol/ii-researcher:latest
 
 - **Main Documentation**: [README.md](README.md)
 - **Architecture**: [ARCHITECTURE.md](ARCHITECTURE.md)
-- **MCP User Guide**: [mcp/USERS_GUIDE.md](mcp/USERS_GUIDE.md)
-- **MCP Developer Guide**: [mcp/DEVELOPERS_GUIDE.md](mcp/DEVELOPERS_GUIDE.md)
+- **MCP Guide**: [docs/guides/MCP.md](../guides/MCP.md)
 - **GitHub Repository**: https://github.com/Intelligent-Internet/ii-researcher
 
 ---

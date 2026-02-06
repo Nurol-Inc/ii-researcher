@@ -1,0 +1,40 @@
+# Docker Compose: MCP server only (no API, no frontend)
+# Uses the MCP-only image. Build with: make build-mcp-local
+
+services:
+  ii-researcher-mcp:
+    image: nurol/ii-researcher-mcp:latest
+    build:
+      context: .
+      dockerfile: container/Dockerfile.mcp
+    container_name: ii-researcher-mcp
+    ports:
+      - "8765:8765"  # MCP Server (SSE)
+
+    env_file:
+      - env.test
+
+    restart: unless-stopped
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(2); s.connect(('127.0.0.1', 8765)); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# ============================================================================
+# Usage:
+#   docker compose -f docker-compose-mcp.yml up -d
+#   docker compose -f docker-compose-mcp.yml up -d --build   # build image first
+#
+# MCP endpoint: http://localhost:8765 (SSE)
+#
+# Required: LLM API must be reachable at OPENAI_BASE_URL (from env.test or .env).
+# If the API runs on the host, use host.docker.internal in OPENAI_BASE_URL
+# (e.g. http://host.docker.internal:8120/v1). Ensure the API is running before
+# running deep_research or you will see "Connection refused" in the logs.
+# ============================================================================

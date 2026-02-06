@@ -1,0 +1,80 @@
+# MCP-only Dockerfile for II-Researcher
+# Runs only the MCP server (no API, no frontend). Smaller image than the full stack.
+# Multi-architecture support: amd64, arm64
+
+# ============================================================================
+# Version Arguments
+# ============================================================================
+ARG PYTHON_VERSION=3.12.12
+ARG DEBIAN_VERSION=bookworm
+
+# ============================================================================
+# Stage 1: Python Base
+# ============================================================================
+FROM python:${PYTHON_VERSION}-slim-${DEBIAN_VERSION} AS python-base
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Minimal system deps (no curl; healthcheck uses Python socket)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# ============================================================================
+# Stage 2: Python Dependencies
+# ============================================================================
+FROM python-base AS python-deps
+
+WORKDIR /tmp
+
+COPY pyproject.toml ./
+
+# Install project and its dependencies (no uvicorn needed for MCP-only)
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install .
+
+# ============================================================================
+# Stage 3: Final Runtime Image
+# ============================================================================
+FROM python-base AS runtime
+
+ARG PYTHON_VERSION=3.12.12
+ARG VERSION=0.0.1
+ARG GIT_COMMIT=unknown
+ARG BUILD_DATE=unknown
+
+LABEL org.opencontainers.image.title="II-Researcher (MCP)" \
+      org.opencontainers.image.description="II-Researcher MCP server only - no API or frontend" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${GIT_COMMIT}" \
+      org.opencontainers.image.vendor="Intelligent Internet" \
+      org.opencontainers.image.source="https://github.com/Intelligent-Internet/ii-researcher"
+
+WORKDIR /app
+
+ENV PYTHON_SHORT_VERSION=${PYTHON_VERSION%.*}
+COPY --from=python-deps /usr/local/lib/python${PYTHON_SHORT_VERSION}/site-packages /usr/local/lib/python${PYTHON_SHORT_VERSION}/site-packages
+COPY --from=python-deps /usr/local/bin /usr/local/bin
+
+COPY pyproject.toml ./
+COPY ii_researcher/ ./ii_researcher/
+COPY mcp/ ./mcp/
+
+RUN pip install --no-deps -e .
+
+# MCP server only
+EXPOSE 8765
+
+ENV PYTHONUNBUFFERED=1 \
+    MCP_PORT=8765
+
+# Health check: verify MCP server is listening on 8765 (no API dependency)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c "import socket; s=socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(2); s.connect(('127.0.0.1', 8765)); s.close()" || exit 1
+
+# Run MCP server in SSE mode (override with e.g. --transport stdio for local use)
+CMD ["python", "mcp/enhanced_server.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8765"]

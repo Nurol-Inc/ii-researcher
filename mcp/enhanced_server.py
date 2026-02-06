@@ -330,7 +330,15 @@ async def deep_research_impl(
         }
         
     except Exception as e:
-        logger.error(f"[Session {session_id}] Research failed: {str(e)}")
+        err_msg = str(e)
+        logger.error(f"[Session {session_id}] Research failed: {err_msg}")
+        if "Connection refused" in err_msg or "Connection error" in err_msg or (e.__cause__ and "refused" in str(e.__cause__)):
+            base_url = os.getenv("OPENAI_BASE_URL", "http://localhost:4000")
+            logger.error(
+                "LLM API unreachable. Check OPENAI_BASE_URL=%s and ensure the API is running. "
+                "From Docker use host.docker.internal:<port> to reach the host machine.",
+                base_url,
+            )
         import traceback
         traceback.print_exc()
         # Send error progress notification
@@ -813,9 +821,65 @@ def main():
         port=args.port,
         log_level=args.log_level,
     )
-    
-    # Run the server
-    server.run(transport=args.transport)
+
+    if args.transport == "sse":
+        # Run SSE with CORS so browser-based clients (e.g. mcp-gui.html) can connect.
+        # Do not pass a custom lifespan: session_manager is only created inside sse_app().
+        import uvicorn
+        from starlette.applications import Starlette
+        from starlette.middleware import Middleware
+        from starlette.middleware.cors import CORSMiddleware
+        from starlette.routing import Mount
+
+        # Inject CORS into every response (including SSE streaming).
+        class AddCORSHeadersMiddleware:
+            def __init__(self, app):
+                self.app = app
+
+            async def __call__(self, scope, receive, send):
+                if scope["type"] != "http":
+                    await self.app(scope, receive, send)
+                    return
+                origin = next((v for k, v in scope.get("headers", []) if k == b"origin"), b"").decode("utf-8") or "*"
+
+                async def send_with_cors(message):
+                    if message["type"] == "http.response.start":
+                        message.setdefault("headers", [])
+                        h = message["headers"]
+                        if not any(k == b"access-control-allow-origin" for k, _ in h):
+                            h.append((b"access-control-allow-origin", origin.encode() if origin != "*" else b"*"))
+                        if not any(k == b"access-control-allow-methods" for k, _ in h):
+                            h.append((b"access-control-allow-methods", b"GET, POST, OPTIONS"))
+                        if not any(k == b"access-control-allow-headers" for k, _ in h):
+                            h.append((b"access-control-allow-headers", b"*"))
+                    await send(message)
+
+                try:
+                    await self.app(scope, receive, send_with_cors)
+                except Exception as e:
+                    if type(e).__name__ == "ClosedResourceError":
+                        logger.debug("SSE client disconnected before response: %s", e)
+                        return
+                    raise
+
+        base_app = Starlette(
+            routes=[Mount("/", server.sse_app())],
+            middleware=[
+                Middleware(
+                    CORSMiddleware,
+                    allow_origins=["*"],
+                    allow_credentials=False,
+                    allow_methods=["GET", "POST", "OPTIONS"],
+                    allow_headers=["*"],
+                    expose_headers=["Mcp-Session-Id", "X-Request-Id"],
+                ),
+            ],
+        )
+        app = AddCORSHeadersMiddleware(base_app)
+        logger.info("CORS enabled for browser-based clients")
+        uvicorn.run(app, host=args.host, port=args.port)
+    else:
+        server.run(transport=args.transport)
 
 
 if __name__ == "__main__":

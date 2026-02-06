@@ -10,6 +10,7 @@ REGISTRY := registry.tunnel.xellence.us
 IMAGE_NAME := nurol/ii-researcher
 IMAGE_NAME_CORE := nurol/ii-researcher-core
 IMAGE_NAME_SVC := nurol/ii-researcher-svc
+IMAGE_NAME_MCP := nurol/ii-researcher-mcp
 PLATFORMS := linux/amd64,linux/arm64
 
 # Get version from git tag, default to v0.0.1 if no tag exists
@@ -26,12 +27,15 @@ FULL_IMAGE_CORE := $(REGISTRY)/$(IMAGE_NAME_CORE):$(IMAGE_VERSION)
 LATEST_IMAGE_CORE := $(REGISTRY)/$(IMAGE_NAME_CORE):latest
 FULL_IMAGE_SVC := $(REGISTRY)/$(IMAGE_NAME_SVC):$(IMAGE_VERSION)
 LATEST_IMAGE_SVC := $(REGISTRY)/$(IMAGE_NAME_SVC):latest
+FULL_IMAGE_MCP := $(REGISTRY)/$(IMAGE_NAME_MCP):$(IMAGE_VERSION)
+LATEST_IMAGE_MCP := $(REGISTRY)/$(IMAGE_NAME_MCP):latest
 
 # Docker build context
 DOCKER_DIR := container
 DOCKERFILE := $(DOCKER_DIR)/Dockerfile
 DOCKERFILE_CORE := $(DOCKER_DIR)/Dockerfile.core
 DOCKERFILE_SVC := $(DOCKER_DIR)/Dockerfile.svc
+DOCKERFILE_MCP := $(DOCKER_DIR)/Dockerfile.mcp
 
 # Build arguments
 BUILD_DATE := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -44,6 +48,7 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 .PHONY: all version help build-local build-multi push clean clean-all test \
         build-core-local build-core-multi push-core \
         build-svc-local build-svc-multi push-svc \
+        build-mcp-local build-mcp-multi push-mcp \
         build-all-local push-all
 
 # ============================================================================
@@ -76,18 +81,26 @@ help:
 	@echo "  make push-svc          - Build and push Service layer"
 	@echo "  make push-all          - Build and push all layers"
 	@echo ""
+	@echo "MCP-only targets:"
+	@echo "  make build-mcp-local   - Build MCP-only image (local)"
+	@echo "  make build-mcp-multi   - Build MCP-only multi-arch"
+	@echo "  make push-mcp          - Build and push MCP-only image"
+	@echo ""
 	@echo "Configuration:"
 	@echo "  Registry:      $(REGISTRY)"
 	@echo "  All-in-one:    $(IMAGE_NAME)"
 	@echo "  Core:          $(IMAGE_NAME_CORE)"
 	@echo "  Service:       $(IMAGE_NAME_SVC)"
+	@echo "  MCP-only:      $(IMAGE_NAME_MCP)"
 	@echo "  Version:       $(VERSION)"
 	@echo "  Platforms:     $(PLATFORMS)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make build-local          # Build all-in-one image"
+	@echo "  make build-mcp-local       # Build MCP-only image"
 	@echo "  make build-all-local      # Build layered architecture"
 	@echo "  make push-all             # Push all to registry"
+	@echo "  make push-mcp             # Push MCP-only image"
 
 # ============================================================================
 # Version Target
@@ -230,7 +243,7 @@ clean:
 	@echo "✓ Docker build cache cleaned!"
 	@echo ""
 	@echo "Remaining images:"
-	@docker images | grep -E "($(IMAGE_NAME)|REPOSITORY)" || echo "  No ii-researcher images found"
+	@docker images | grep -E "($(IMAGE_NAME)|$(IMAGE_NAME_CORE)|$(IMAGE_NAME_SVC)|$(IMAGE_NAME_MCP)|REPOSITORY)" || echo "  No ii-researcher images found"
 
 # Clean all Docker resources including volumes and networks
 clean-all: clean
@@ -344,7 +357,7 @@ info:
 	@echo "  Platforms:     $(PLATFORMS)"
 	@echo ""
 	@echo "Local Images:"
-	@docker images | grep -E "($(IMAGE_NAME)|REPOSITORY)" || echo "  No local images found"
+	@docker images | grep -E "($(IMAGE_NAME)|$(IMAGE_NAME_CORE)|$(IMAGE_NAME_SVC)|$(IMAGE_NAME_MCP)|REPOSITORY)" || echo "  No local images found"
 	@echo ""
 	@echo "Running Containers:"
 	@docker ps --filter ancestor=$(IMAGE_NAME) --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "  No running containers"
@@ -519,4 +532,72 @@ push-all: push-core push-svc push
 	@echo "  Core:       $(FULL_IMAGE_CORE)"
 	@echo "  Service:    $(FULL_IMAGE_SVC)"
 	@echo "  All-in-one: $(FULL_IMAGE)"
+
+# ============================================================================
+# MCP-Only Build Targets
+# ============================================================================
+
+# Build MCP-only image (local)
+build-mcp-local:
+	@echo "============================================"
+	@echo "Building MCP-only image (local)"
+	@echo "Version: $(VERSION)"
+	@echo "Image: $(IMAGE_NAME_MCP):$(IMAGE_VERSION)"
+	@echo "============================================"
+	@docker build \
+		--file $(DOCKERFILE_MCP) \
+		--build-arg VERSION=$(IMAGE_VERSION) \
+		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--tag $(IMAGE_NAME_MCP):$(IMAGE_VERSION) \
+		--tag $(IMAGE_NAME_MCP):latest \
+		.
+	@echo ""
+	@echo "✓ MCP-only image built successfully!"
+	@echo "  Image: $(IMAGE_NAME_MCP):$(IMAGE_VERSION)"
+	@echo "  Image: $(IMAGE_NAME_MCP):latest"
+	@echo ""
+	@echo "To run: docker run -p 8765:8765 --env-file .env $(IMAGE_NAME_MCP):latest"
+
+# Build MCP-only image (multi-arch)
+build-mcp-multi:
+	@echo "============================================"
+	@echo "Building MCP-only image (multi-arch)"
+	@echo "Version: $(VERSION)"
+	@echo "Platforms: $(PLATFORMS)"
+	@echo "============================================"
+	@docker buildx build \
+		--platform $(PLATFORMS) \
+		--file $(DOCKERFILE_MCP) \
+		--build-arg VERSION=$(IMAGE_VERSION) \
+		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--tag $(FULL_IMAGE_MCP) \
+		--tag $(LATEST_IMAGE_MCP) \
+		.
+	@echo ""
+	@echo "✓ MCP-only multi-arch images built!"
+
+# Push MCP-only image
+push-mcp:
+	@echo "============================================"
+	@echo "Building and pushing MCP-only image"
+	@echo "Version: $(VERSION)"
+	@echo "Platforms: $(PLATFORMS)"
+	@echo "============================================"
+	@docker buildx create --name ii-researcher-builder --use 2>/dev/null || docker buildx use ii-researcher-builder
+	@docker buildx build \
+		--platform $(PLATFORMS) \
+		--file $(DOCKERFILE_MCP) \
+		--build-arg VERSION=$(IMAGE_VERSION) \
+		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--tag $(FULL_IMAGE_MCP) \
+		--tag $(LATEST_IMAGE_MCP) \
+		--push \
+		.
+	@echo ""
+	@echo "✓ MCP-only image pushed successfully!"
+	@echo "  $(FULL_IMAGE_MCP)"
+	@echo "  $(LATEST_IMAGE_MCP)"
 

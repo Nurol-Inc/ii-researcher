@@ -1,26 +1,21 @@
-# II-Researcher MCP Client
+# II-Researcher MCP
 
-A simple command-line wrapper for the II-Researcher MCP server that allows you to perform deep research queries from the terminal.
+MCP server and clients for deep research. **Full guide:** [docs/guides/MCP.md](../docs/guides/MCP.md) (quick start, Docker, browser GUI, config, troubleshooting).
 
-## Quick Start
+## Research client (CLI)
 
-### 1. Start the MCP Server
-
-First, start the II-Researcher MCP server:
+Command-line client for deep research. Start the MCP server first (see [docs/guides/MCP.md](../docs/guides/MCP.md)):
 
 ```bash
-cd ii-researcher
-export OPENAI_BASE_URL=http://192.168.10.86:8000/v1
-export EMBEDDING_BASE_URL=http://192.168.10.86:8001/v1
-export COMPRESS_EMBEDDING_MODEL=BAAI/bge-m3
+# Example: run server
+export OPENAI_API_KEY="your-key"
+export OPENAI_BASE_URL="http://localhost:4000"
 export SEARCH_PROVIDER=duckduckgo
 export SCRAPER_PROVIDER=bs
 uv run python mcp/enhanced_server.py --transport sse --port 8765
 ```
 
-### 2. Use the Research Client
-
-Perform research from the command line:
+Then run research:
 
 ```bash
 # Basic usage - advanced report (default)

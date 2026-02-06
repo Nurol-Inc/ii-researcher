@@ -22,7 +22,9 @@ docker compose logs -f
 # Verify services
 curl http://localhost:3001  # Frontend
 curl http://localhost:8001/docs  # API
-curl http://localhost:8765  # MCP
+curl http://localhost:8765  # MCP (SSE)
+
+# MCP: full guide and troubleshooting → [MCP.md](MCP.md)
 
 # Stop
 docker compose down
@@ -37,7 +39,7 @@ docker run -d -p 8000:8000 --env-file .env nurol/ii-researcher:latest api
 # Frontend only
 docker run -d -p 3000:3000 --env-file .env nurol/ii-researcher:latest frontend
 
-# MCP only
+# MCP only (see [MCP.md](MCP.md) for compose-mcp and OPENAI_BASE_URL)
 docker run -d -p 8765:8765 --env-file .env nurol/ii-researcher:latest mcp
 
 # CLI mode

@@ -10,13 +10,14 @@ Complete documentation for understanding, deploying, and using II-Researcher.
 docs/
 ├── architecture/          # System architecture and design
 │   └── ARCHITECTURE.md
-├── container/               # Container and deployment guides
-│   ├── CONTAINER.md         # Complete Docker guide
-│   ├── QUICKSTART.md     # Quick start
-│   ├── ENV_FILE_GUIDE.md # Environment configuration
+├── container/             # Container and deployment guides
+│   ├── CONTAINER.md       # Complete Docker guide
+│   ├── QUICKSTART.md      # Quick start
+│   ├── ENV_FILE_GUIDE.md  # Environment configuration
 │   └── CONTAINER_FILES_EXPLAINED.md  # File purposes
-└── guides/               # Testing and reference
-    └── CONTAINER_CHECKLIST.md  # Testing checklist
+└── guides/                # Testing and reference
+    ├── CONTAINER_CHECKLIST.md  # Docker testing checklist
+    └── MCP.md             # MCP quick start, Docker, GUI, troubleshooting
 ```
 
 ---
@@ -41,6 +42,9 @@ docs/
 - **[QUICKSTART.md](container/QUICKSTART.md)** - 4-step quick start
 - **[ENV_FILE_GUIDE.md](container/ENV_FILE_GUIDE.md)** - Environment configuration
 - **[CONTAINER_FILES_EXPLAINED.md](container/CONTAINER_FILES_EXPLAINED.md)** - Which files to use when
+
+### MCP Server
+- **[MCP.md](guides/MCP.md)** - MCP quick start, Docker (compose-mcp), browser GUI, config, troubleshooting
 
 ### Testing
 - **[CONTAINER_CHECKLIST.md](guides/CONTAINER_CHECKLIST.md)** - Testing procedures and troubleshooting
@@ -67,10 +71,16 @@ make push           # Multi-arch + push
 ### Run Individual Services
 ```bash
 docker run nurol/ii-researcher:latest api        # API only
-docker run nurol/ii-researcher:latest frontend   # Frontend only
-docker run nurol/ii-researcher:latest mcp        # MCP only
+docker run nurol/ii-researcher:latest frontend  # Frontend only
+docker run nurol/ii-researcher:latest mcp       # MCP only
 ```
 📖 [CONTAINER.md](container/CONTAINER.md) - Service Modes
+
+### MCP only (Docker)
+```bash
+docker compose -f docker-compose-mcp.yml up -d   # MCP at http://localhost:8765
+```
+📖 [MCP.md](guides/MCP.md) - Requires OPENAI_BASE_URL (use host.docker.internal for host API)
 
 ### Troubleshoot
 📖 [CONTAINER.md](container/CONTAINER.md) - Troubleshooting  
@@ -94,4 +104,4 @@ docker run nurol/ii-researcher:latest mcp        # MCP only
 
 ---
 
-*Last Updated: 2026-01-22*
+*Last updated: 2026-02-05*

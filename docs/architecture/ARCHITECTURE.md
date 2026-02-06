@@ -470,8 +470,7 @@ R_PRESENCE_PENALTY      # Presence penalty for reasoning
 ## Support & Documentation
 
 - **Main README**: `/README.md`
-- **MCP User Guide**: `/mcp/USERS_GUIDE.md`
-- **MCP Developer Guide**: `/mcp/DEVELOPERS_GUIDE.md`
+- **MCP Guide**: `docs/guides/MCP.md`
 - **Blog Post**: https://www.ii.inc/web/blog/post/ii-researcher
 - **Issues**: GitHub Issues
 

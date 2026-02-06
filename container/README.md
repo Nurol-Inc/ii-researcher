@@ -26,6 +26,13 @@ II-Researcher provides three image options:
 - **Use Case:** Library usage, base for custom services
 - **File:** `Dockerfile.core`
 
+### 4. MCP-Only: `nurol/ii-researcher-mcp`
+- **Contains:** MCP server only (no API, no frontend)
+- **Size:** Smaller than all-in-one (no Node.js, no frontend build)
+- **Use Case:** MCP-only deployments, Claude Desktop / MCP clients
+- **File:** `Dockerfile.mcp`
+- **Health check:** Verifies MCP port 8765 is listening (does not depend on API)
+
 ---
 
 ## 📁 Files Overview
@@ -48,6 +55,13 @@ II-Researcher provides three image options:
 - **Includes:** API server, MCP server, Frontend
 - **Depends on:** Core layer image
 - **Usage:** `make build-svc-local`
+
+#### `Dockerfile.mcp` (MCP-Only)
+- **Purpose:** MCP server only; no API or frontend
+- **Includes:** Python runtime, ii_researcher, mcp server
+- **Smaller image:** No Node.js, no frontend, no supervisor
+- **Health check:** Python socket check on port 8765 (no API dependency)
+- **Usage:** `docker build -f container/Dockerfile.mcp -t nurol/ii-researcher-mcp:latest .`
 
 ### Entrypoint Scripts
 
@@ -217,6 +231,20 @@ docker run --rm \
   nurol/ii-researcher-core:latest
 ```
 
+### MCP-Only Image
+
+```bash
+# Build
+docker build -f container/Dockerfile.mcp -t nurol/ii-researcher-mcp:latest .
+
+# Run MCP server (SSE on 8765)
+docker run -d \
+  --name ii-researcher-mcp \
+  -p 8765:8765 \
+  --env-file .env \
+  nurol/ii-researcher-mcp:latest
+```
+
 ---
 
 ## 🔧 Environment Variables
@@ -264,7 +292,10 @@ docker inspect ii-researcher | grep -A 10 Health
 curl http://localhost:8000/docs    # API
 curl http://localhost:8000         # API root
 curl http://localhost:3000         # Frontend
+curl http://localhost:8765         # MCP (SSE server)
 ```
+
+**MCP-only image (`Dockerfile.mcp`):** Health check uses a Python socket connection to port 8765 only; it does not depend on the API service.
 
 ---
 
@@ -418,6 +449,11 @@ The Makefile automatically uses the git tag for version numbering (defaults to `
 - ✅ Building custom services on top
 - ✅ CLI-only usage
 - ✅ Need smallest possible image
+
+### Use MCP-Only (`nurol/ii-researcher-mcp`) if:
+- ✅ You only need the MCP server (no API, no UI)
+- ✅ Connecting via Claude Desktop or other MCP clients
+- ✅ Want a smaller image than the all-in-one (no Node.js, no frontend)
 
 ---
 
